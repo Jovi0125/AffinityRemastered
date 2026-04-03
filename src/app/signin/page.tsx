@@ -52,16 +52,7 @@ export default function SignInPage() {
         overflow: "hidden",
       }}
     >
-      {/* Subtle grid */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)`,
-          backgroundSize: "60px 60px",
-        }}
-      />
+
 
       {/* Radial glow */}
       <div
