@@ -78,12 +78,12 @@ END $$;
 -- 5. Create two test user accounts
 -- Credentials:
 --   donnel@affinity.app   / Affinity2026!
---   lucas@affinity.app  / Affinity2026!
+--   merk@affinity.app  / Affinity2026!
 
 DO $$
 DECLARE
   maya_id UUID := gen_random_uuid();
-  lucas_id UUID := gen_random_uuid();
+  merk_id UUID := gen_random_uuid();
 BEGIN
   -- Donnel
   INSERT INTO auth.users (
@@ -110,28 +110,28 @@ BEGIN
     'email', now(), now(), now()
   );
 
-  -- Lucas Park
+  -- Merk
   INSERT INTO auth.users (
     instance_id, id, aud, role, email, encrypted_password,
     email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
     created_at, updated_at,
     confirmation_token, email_change, email_change_token_new, recovery_token
   ) VALUES (
-    '00000000-0000-0000-0000-000000000000', lucas_id,
+    '00000000-0000-0000-0000-000000000000', merk_id,
     'authenticated', 'authenticated',
-    'lucas@affinity.app',
+    'merk@affinity.app',
     crypt('Affinity2026!', gen_salt('bf')),
     now(),
     '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Lucas Park"}',
+    '{"full_name":"Merk"}',
     now(), now(), '', '', '', ''
   );
 
   INSERT INTO auth.identities (
     id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at
   ) VALUES (
-    gen_random_uuid(), lucas_id, lucas_id::text,
-    json_build_object('sub', lucas_id::text, 'email', 'lucas@affinity.app', 'full_name', 'Lucas Park'),
+    gen_random_uuid(), merk_id, merk_id::text,
+    json_build_object('sub', merk_id::text, 'email', 'merk@affinity.app', 'full_name', 'Merk'),
     'email', now(), now(), now()
   );
 
@@ -148,11 +148,11 @@ BEGIN
     location = 'Seoul, South Korea',
     interests = ARRAY['Architecture', 'Vinyl Records', 'Jazz', 'Urban Photography', 'Cooking'],
     avatar_url = 'https://images.unsplash.com/photo-1752649935868-dd9080445d18?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400'
-  WHERE id = lucas_id;
+  WHERE id = merk_id;
 
   -- Make them follow each other
-  INSERT INTO public.follows (follower_id, following_id) VALUES (maya_id, lucas_id);
-  INSERT INTO public.follows (follower_id, following_id) VALUES (lucas_id, maya_id);
+  INSERT INTO public.follows (follower_id, following_id) VALUES (maya_id, merk_id);
+  INSERT INTO public.follows (follower_id, following_id) VALUES (merk_id, maya_id);
 
 END $$;
 
