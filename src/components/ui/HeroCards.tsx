@@ -1,5 +1,8 @@
-import { ArrowRight } from "lucide-react";
-import { demoProfiles } from "@/data/profiles";
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { SupabaseProfile } from "@/data/profiles";
 
 function HeroFloatingCard({
   name,
@@ -66,36 +69,58 @@ function HeroFloatingCard({
   );
 }
 
+const cardPositions = [
+  { animationName: "float1", style: { top: 0, left: 40, width: 200 } },
+  { animationName: "float2", style: { top: 120, right: 0, width: 210 } },
+  { animationName: "float3", style: { bottom: 20, left: 20, width: 195 } },
+] as const;
+
+function useRealProfiles() {
+  const [profiles, setProfiles] = useState<SupabaseProfile[]>([]);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    const fetchProfiles = async () => {
+      // Fetch all profiles, then randomly pick up to 3 client-side
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, cover_url, location, bio, interests");
+
+      if (data && data.length > 0) {
+        // Shuffle and take up to 3
+        const shuffled = [...data].sort(() => Math.random() - 0.5);
+        setProfiles(shuffled.slice(0, 3) as SupabaseProfile[]);
+      }
+    };
+
+    fetchProfiles();
+  }, []);
+
+  return profiles;
+}
+
 export function HeroCards() {
+  const profiles = useRealProfiles();
+
+  if (profiles.length === 0) return null;
+
   return (
     <div
       className="relative hidden lg:block"
       style={{ width: 380, height: 440, flexShrink: 0 }}
     >
-      <HeroFloatingCard
-        name={demoProfiles[0].name}
-        location={demoProfiles[0].location}
-        avatar={demoProfiles[0].avatar}
-        interests={demoProfiles[0].interests}
-        animationName="float1"
-        style={{ top: 0, left: 40, width: 200 }}
-      />
-      <HeroFloatingCard
-        name={demoProfiles[1].name}
-        location={demoProfiles[1].location}
-        avatar={demoProfiles[1].avatar}
-        interests={demoProfiles[1].interests}
-        animationName="float2"
-        style={{ top: 120, right: 0, width: 210 }}
-      />
-      <HeroFloatingCard
-        name={demoProfiles[2].name}
-        location={demoProfiles[2].location}
-        avatar={demoProfiles[2].avatar}
-        interests={demoProfiles[2].interests}
-        animationName="float3"
-        style={{ bottom: 20, left: 20, width: 195 }}
-      />
+      {profiles.map((p, i) => (
+        <HeroFloatingCard
+          key={p.id}
+          name={p.full_name || "Anonymous"}
+          location={p.location || "Unknown"}
+          avatar={p.avatar_url || ""}
+          interests={p.interests || []}
+          animationName={cardPositions[i].animationName}
+          style={cardPositions[i].style as React.CSSProperties}
+        />
+      ))}
       <div
         style={{
           position: "absolute",
@@ -114,14 +139,18 @@ export function HeroCards() {
 }
 
 export function HeroMiniAvatars() {
+  const profiles = useRealProfiles();
+
+  if (profiles.length === 0) return null;
+
   return (
     <div className="flex items-center gap-4 mt-10">
       <div className="flex" style={{ marginRight: "0.5rem" }}>
-        {demoProfiles.slice(0, 4).map((p, i) => (
+        {profiles.map((p, i) => (
           <img
             key={p.id}
-            src={p.avatar}
-            alt={p.name}
+            src={p.avatar_url || ""}
+            alt={p.full_name || "User"}
             width={28}
             height={28}
             style={{
@@ -129,7 +158,6 @@ export function HeroMiniAvatars() {
               height: 28,
               borderRadius: "50%",
               objectFit: "cover",
-
               border: "2px solid #0a0a0a",
               marginLeft: i === 0 ? 0 : -8,
             }}

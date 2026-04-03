@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, MapPin, MessageCircle, UserPlus, UserCheck } from "lucide-react";
 import { InterestTag } from "@/components/ui/InterestTag";
 import { ProfileCard } from "@/components/ui/ProfileCard";
+import { FollowListModal } from "@/components/ui/FollowListModal";
+
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import type { SupabaseProfile } from "@/data/profiles";
@@ -20,6 +22,7 @@ export default function ProfilePage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [followModal, setFollowModal] = useState<"followers" | "following" | null>(null);
 
   const supabase = createClient();
 
@@ -247,16 +250,31 @@ export default function ProfilePage() {
           <div>
             <div style={{ border: "1px solid #EFEFEF", borderRadius: "6px", padding: "1.5rem", marginBottom: "1.5rem" }}>
               {[
-                { label: "Followers", value: followerCount },
-                { label: "Following", value: followingCount },
+                { label: "Followers", value: followerCount, key: "followers" as const },
+                { label: "Following", value: followingCount, key: "following" as const },
               ].map((stat, i) => (
-                <div key={stat.label} className="flex items-center justify-between py-3"
-                  style={{ borderTop: i > 0 ? "1px solid #F5F5F5" : "none" }}>
+                <button
+                  key={stat.label}
+                  onClick={() => setFollowModal(stat.key)}
+                  className="flex items-center justify-between py-3 w-full"
+                  style={{
+                    borderTop: i > 0 ? "1px solid #F5F5F5" : "none",
+                    background: "none",
+                    border: i > 0 ? undefined : "none",
+                    borderBottom: "none",
+                    borderLeft: "none",
+                    borderRight: "none",
+                    cursor: "pointer",
+                    padding: "0.75rem 0",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                >
                   <span style={{ fontSize: "0.8125rem", color: "#999" }}>{stat.label}</span>
                   <span style={{ fontSize: "0.9375rem", fontWeight: 500, color: "#0a0a0a" }}>
                     {stat.value.toLocaleString()}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
 
@@ -275,6 +293,8 @@ export default function ProfilePage() {
           </div>
         </div>
 
+
+
         {/* Suggestions */}
         {suggestions.length > 0 && (
           <div style={{ borderTop: "1px solid #F0F0F0", marginTop: "4rem", paddingTop: "3rem", paddingBottom: "6rem" }}>
@@ -289,6 +309,13 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+      {followModal && (
+        <FollowListModal
+          userId={id}
+          type={followModal}
+          onClose={() => setFollowModal(null)}
+        />
+      )}
     </div>
   );
 }
