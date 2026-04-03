@@ -115,11 +115,35 @@ export default function MessagesPage() {
 
   useEffect(() => {
     fetchConversations();
-  }, [fetchConversations]);
 
-  // Fetch messages for active conversation
+    if (!user) return;
+
+    // Live updates for conversation list (last_message, timestamps)
+    const convoChannel = supabase
+      .channel("conversations-list")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "conversations",
+        },
+        () => {
+          fetchConversations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(convoChannel);
+    };
+  }, [fetchConversations, user]);
+
+  // Fetch messages for active conversation + live subscription
   useEffect(() => {
     if (!activeId) return;
+
+    let isMounted = true;
 
     const fetchMessages = async () => {
       const { data } = await supabase
@@ -128,12 +152,23 @@ export default function MessagesPage() {
         .eq("conversation_id", activeId)
         .order("created_at", { ascending: true });
 
-      if (data) setMessages(data as MessageRow[]);
+      if (data && isMounted) {
+        setMessages((prev) => {
+          // Merge: keep optimistic messages, add new ones from DB
+          const realIds = new Set(data.map((m: MessageRow) => m.id));
+          const optimistic = prev.filter(
+            (m) => m.id.startsWith("temp-") && !data.some(
+              (d: MessageRow) => d.sender_id === m.sender_id && d.content === m.content
+            )
+          );
+          return [...(data as MessageRow[]), ...optimistic];
+        });
+      }
     };
 
     fetchMessages();
 
-    // Subscribe to new messages
+    // Realtime subscription for instant delivery
     const channel = supabase
       .channel(`messages:${activeId}`)
       .on(
@@ -147,9 +182,7 @@ export default function MessagesPage() {
         (payload) => {
           const newMsg = payload.new as MessageRow;
           setMessages((prev) => {
-            // If we already have this message (by real ID), skip
             if (prev.some((m) => m.id === newMsg.id)) return prev;
-            // Replace optimistic temp message from same sender with real one
             const hasTemp = prev.some(
               (m) => m.id.startsWith("temp-") && m.sender_id === newMsg.sender_id && m.content === newMsg.content
             );
@@ -164,9 +197,22 @@ export default function MessagesPage() {
           });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("[Realtime] Subscribed to messages:", activeId);
+        } else if (status === "CHANNEL_ERROR") {
+          console.warn("[Realtime] Channel error — falling back to polling");
+        }
+      });
+
+    // Polling fallback: catches messages if Realtime RLS blocks delivery
+    const pollInterval = setInterval(() => {
+      if (isMounted) fetchMessages();
+    }, 3000);
 
     return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
