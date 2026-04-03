@@ -18,16 +18,7 @@ export function HeroSection() {
         overflow: "hidden",
       }}
     >
-      {/* Subtle grid background */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
-          backgroundSize: "60px 60px",
-        }}
-      />
+
 
       <div className="max-w-7xl mx-auto px-6 lg:px-8 w-full" style={{ paddingTop: "6rem", paddingBottom: "6rem" }}>
         <div className="flex flex-col lg:flex-row items-center justify-between gap-16">

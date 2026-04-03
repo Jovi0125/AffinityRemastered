@@ -14,10 +14,10 @@ export function InterestTag({ label, filled = false, size = "md" }: InterestTagP
         fontWeight: 400,
         letterSpacing: "0.03em",
         border: "1px solid",
-        borderColor: filled ? "#0a0a0a" : "#D8D8D8",
-        backgroundColor: filled ? "#0a0a0a" : "transparent",
-        color: filled ? "#fff" : "#555",
-        borderRadius: "2px",
+        borderColor: filled ? "#0a0a0a" : "#E8E8E8",
+        backgroundColor: filled ? "#0a0a0a" : "#F8F8F8",
+        color: filled ? "#fff" : "#666",
+        borderRadius: "20px",
         whiteSpace: "nowrap" as const,
       }}
     >

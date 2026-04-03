@@ -80,7 +80,7 @@ export default function ExplorePage() {
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
             <div
               className="flex items-center gap-3"
-              style={{ flex: 1, maxWidth: 480, border: "1px solid #D8D8D8", borderRadius: "4px", padding: "0.75rem 1rem" }}
+              style={{ flex: 1, maxWidth: 480, border: "1px solid #E8E8E8", borderRadius: "12px", padding: "0.75rem 1rem", backgroundColor: "#FAFAFA" }}
             >
               <Search size={15} color="#aaa" />
               <input
@@ -105,8 +105,8 @@ export default function ExplorePage() {
                 padding: "0.75rem 1.25rem",
                 backgroundColor: showFilters ? "#0a0a0a" : "transparent",
                 color: showFilters ? "#fff" : "#0a0a0a",
-                border: "1px solid", borderColor: showFilters ? "#0a0a0a" : "#D8D8D8",
-                borderRadius: "4px", cursor: "pointer",
+                border: "1px solid", borderColor: showFilters ? "#0a0a0a" : "#E8E8E8",
+                borderRadius: "12px", cursor: "pointer",
               }}
             >
               <SlidersHorizontal size={14} />
@@ -141,9 +141,9 @@ export default function ExplorePage() {
                       onClick={() => setLocation(loc)}
                       style={{
                         fontSize: "0.75rem", padding: "0.3rem 0.85rem", border: "1px solid",
-                        borderColor: location === loc ? "#0a0a0a" : "#E0E0E0", borderRadius: "2px",
-                        backgroundColor: location === loc ? "#0a0a0a" : "transparent",
-                        color: location === loc ? "#fff" : "#555", cursor: "pointer", transition: "all 0.15s ease",
+                        borderColor: location === loc ? "#0a0a0a" : "#E8E8E8", borderRadius: "20px",
+                        backgroundColor: location === loc ? "#0a0a0a" : "#F8F8F8",
+                        color: location === loc ? "#fff" : "#666", cursor: "pointer", transition: "all 0.15s ease",
                       }}
                     >
                       {loc}
@@ -195,8 +195,8 @@ export default function ExplorePage() {
               <span style={{ fontSize: "0.75rem", color: "#bbb" }}>Sort:</span>
               <select
                 style={{
-                  fontSize: "0.75rem", color: "#555", border: "1px solid #E0E0E0",
-                  borderRadius: "3px", padding: "0.25rem 0.5rem", outline: "none",
+                  fontSize: "0.75rem", color: "#555", border: "1px solid #E8E8E8",
+                  borderRadius: "8px", padding: "0.25rem 0.5rem", outline: "none",
                   backgroundColor: "#fff", cursor: "pointer",
                 }}
               >
