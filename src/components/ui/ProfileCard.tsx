@@ -3,6 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { InterestTag } from "@/components/ui/InterestTag";
+import { OnlineIndicator, isUserOnline } from "@/components/ui/OnlineIndicator";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { calculateAffinityScore } from "@/hooks/useAffinityScore";
 import type { SupabaseProfile, DemoProfile } from "@/data/profiles";
 
 type ProfileInput = SupabaseProfile | DemoProfile;
@@ -15,12 +18,16 @@ function getAvatar(p: ProfileInput): string | null {
   return "avatar_url" in p ? p.avatar_url : p.avatar || null;
 }
 
+function getLastSeen(p: ProfileInput): string | null {
+  return "last_seen_at" in p ? (p as SupabaseProfile & { last_seen_at?: string }).last_seen_at || null : null;
+}
+
 interface ProfileCardProps {
   profile: ProfileInput;
   variant?: "default" | "featured" | "compact";
 }
 
-function Avatar({ src, name, size }: { src: string | null; name: string; size: number }) {
+function Avatar({ src, name, size, lastSeenAt }: { src: string | null; name: string; size: number; lastSeenAt?: string | null }) {
   const initials = (name || "?")
     .split(" ")
     .map((w) => w[0])
@@ -28,50 +35,101 @@ function Avatar({ src, name, size }: { src: string | null; name: string; size: n
     .toUpperCase()
     .slice(0, 2);
 
-  if (src) {
-    return (
-      <img
-        src={src}
-        alt={name}
-        width={size}
-        height={size}
-        style={{
-          width: size,
-          height: size,
-          borderRadius: "50%",
-          objectFit: "cover",
-          filter: "none",
-          flexShrink: 0,
-        }}
-      />
-    );
-  }
+  return (
+    <div style={{ position: "relative", flexShrink: 0 }}>
+      {src ? (
+        <img
+          src={src}
+          alt={name}
+          width={size}
+          height={size}
+          style={{
+            width: size,
+            height: size,
+            borderRadius: "50%",
+            objectFit: "cover",
+            filter: "none",
+            flexShrink: 0,
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            width: size,
+            height: size,
+            borderRadius: "50%",
+            backgroundColor: "#F0F0F0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: size * 0.35,
+            fontWeight: 600,
+            color: "#555",
+            flexShrink: 0,
+          }}
+        >
+          {initials}
+        </div>
+      )}
+      {lastSeenAt && isUserOnline(lastSeenAt) && (
+        <span
+          style={{
+            position: "absolute",
+            bottom: size > 44 ? 2 : 0,
+            right: size > 44 ? 2 : 0,
+            width: size > 44 ? 12 : 10,
+            height: size > 44 ? 12 : 10,
+            borderRadius: "50%",
+            backgroundColor: "#22c55e",
+            border: "2px solid #fff",
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function AffinityBadge({ score }: { score: number }) {
+  if (score <= 0) return null;
+
+  const getColor = (s: number) => {
+    if (s >= 60) return { bg: "rgba(34,197,94,0.1)", text: "#16a34a", border: "rgba(34,197,94,0.2)" };
+    if (s >= 30) return { bg: "rgba(234,179,8,0.1)", text: "#ca8a04", border: "rgba(234,179,8,0.2)" };
+    return { bg: "rgba(156,163,175,0.1)", text: "#6b7280", border: "rgba(156,163,175,0.2)" };
+  };
+
+  const colors = getColor(score);
 
   return (
-    <div
+    <span
       style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        backgroundColor: "#F0F0F0",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: size * 0.35,
+        fontSize: "0.6875rem",
         fontWeight: 600,
-        color: "#555",
-        flexShrink: 0,
+        padding: "0.2rem 0.5rem",
+        borderRadius: "10px",
+        backgroundColor: colors.bg,
+        color: colors.text,
+        border: `1px solid ${colors.border}`,
+        letterSpacing: "0.01em",
       }}
     >
-      {initials}
-    </div>
+      {score}% match
+    </span>
   );
 }
 
 export function ProfileCard({ profile, variant = "default" }: ProfileCardProps) {
   const [hovered, setHovered] = useState(false);
+  const { profile: myProfile, user } = useAuth();
   const name = getName(profile);
   const interests = profile.interests || [];
+  const lastSeenAt = getLastSeen(profile);
+
+  // Calculate affinity score (only for supabase profiles, not demos)
+  const myInterests = myProfile?.interests || [];
+  const affinityScore = user && "full_name" in profile
+    ? calculateAffinityScore(myInterests, interests)
+    : 0;
 
   if (variant === "compact") {
     return (
@@ -89,8 +147,8 @@ export function ProfileCard({ profile, variant = "default" }: ProfileCardProps) 
             boxShadow: hovered ? "0 2px 12px rgba(0,0,0,0.06)" : "none",
           }}
         >
-          <Avatar src={getAvatar(profile)} name={name} size={40} />
-          <div style={{ minWidth: 0 }}>
+          <Avatar src={getAvatar(profile)} name={name} size={40} lastSeenAt={lastSeenAt} />
+          <div style={{ minWidth: 0, flex: 1 }}>
             <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "#0a0a0a", marginBottom: "0.1rem" }}>
               {name}
             </p>
@@ -98,6 +156,7 @@ export function ProfileCard({ profile, variant = "default" }: ProfileCardProps) 
               {interests.slice(0, 2).join(" · ")}
             </p>
           </div>
+          {affinityScore > 0 && <AffinityBadge score={affinityScore} />}
         </div>
       </Link>
     );
@@ -156,6 +215,34 @@ export function ProfileCard({ profile, variant = "default" }: ProfileCardProps) 
                 {(name || "?").charAt(0).toUpperCase()}
               </div>
             )}
+
+            {/* Affinity badge overlay */}
+            {affinityScore > 0 && (
+              <div style={{ position: "absolute", top: 10, right: 10 }}>
+                <AffinityBadge score={affinityScore} />
+              </div>
+            )}
+
+            {/* Online indicator overlay */}
+            {lastSeenAt && isUserOnline(lastSeenAt) && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 10,
+                  left: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "0.2rem 0.5rem",
+                  borderRadius: "10px",
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  backdropFilter: "blur(4px)",
+                }}
+              >
+                <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#22c55e" }} />
+                <span style={{ fontSize: "0.625rem", color: "#fff", fontWeight: 500 }}>Online</span>
+              </div>
+            )}
           </div>
           <div style={{ padding: "1.125rem" }}>
             <p style={{ fontSize: "0.9375rem", fontWeight: 500, color: "#0a0a0a", marginBottom: "0.2rem" }}>
@@ -166,7 +253,12 @@ export function ProfileCard({ profile, variant = "default" }: ProfileCardProps) 
             </p>
             <div className="flex flex-wrap gap-1.5">
               {interests.slice(0, 3).map((interest) => (
-                <InterestTag key={interest} label={interest} size="sm" />
+                <InterestTag
+                  key={interest}
+                  label={interest}
+                  size="sm"
+                  filled={myInterests.includes(interest)}
+                />
               ))}
             </div>
           </div>
@@ -192,17 +284,25 @@ export function ProfileCard({ profile, variant = "default" }: ProfileCardProps) 
         }}
       >
         <div className="flex items-start gap-4">
-          <Avatar src={getAvatar(profile)} name={name} size={56} />
-          <div>
-            <p style={{ fontSize: "0.9375rem", fontWeight: 500, color: "#0a0a0a", marginBottom: "0.125rem" }}>
-              {name}
-            </p>
+          <Avatar src={getAvatar(profile)} name={name} size={56} lastSeenAt={lastSeenAt} />
+          <div style={{ flex: 1 }}>
+            <div className="flex items-center justify-between">
+              <p style={{ fontSize: "0.9375rem", fontWeight: 500, color: "#0a0a0a", marginBottom: "0.125rem" }}>
+                {name}
+              </p>
+              {affinityScore > 0 && <AffinityBadge score={affinityScore} />}
+            </div>
             <p style={{ fontSize: "0.75rem", color: "#999", marginBottom: "0.75rem" }}>
               {profile.location || "Unknown"}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {interests.slice(0, 3).map((interest) => (
-                <InterestTag key={interest} label={interest} size="sm" />
+                <InterestTag
+                  key={interest}
+                  label={interest}
+                  size="sm"
+                  filled={myInterests.includes(interest)}
+                />
               ))}
             </div>
           </div>

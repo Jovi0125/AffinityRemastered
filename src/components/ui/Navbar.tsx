@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, LogOut, User, MessageCircle } from "lucide-react";
+import { Menu, X, LogOut, User, MessageCircle, Bell } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useNotifications } from "@/components/providers/NotificationProvider";
 
 const publicLinks = [
   { label: "Explore", href: "/explore" },
@@ -16,10 +17,13 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
   const { user, profile, loading, signOut } = useAuth();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const isHome = pathname === "/";
 
   useEffect(() => {
@@ -31,6 +35,7 @@ export function Navbar() {
   useEffect(() => {
     setMobileOpen(false);
     setDropdownOpen(false);
+    setNotifOpen(false);
   }, [pathname]);
 
   // Close dropdown on outside click
@@ -38,6 +43,9 @@ export function Navbar() {
     const handleClick = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClick);
@@ -54,11 +62,26 @@ export function Navbar() {
     router.refresh();
   };
 
+  const formatNotifTime = (iso: string) => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return "Just now";
+    if (min < 60) return `${min}m ago`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}h ago`;
+    const d = Math.floor(hr / 24);
+    if (d < 7) return `${d}d ago`;
+    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
   // Build nav links based on auth state
   const navLinks = [
     ...publicLinks,
     ...(isLoggedIn
-      ? [{ label: "Messages", href: "/messages" }]
+      ? [
+          { label: "Messages", href: "/messages" },
+          { label: "Activity", href: "/activity" },
+        ]
       : [{ label: "Sign In", href: "/signin" }]),
   ];
 
@@ -118,7 +141,138 @@ export function Navbar() {
         {/* CTA / User Menu */}
         <div className="hidden md:flex items-center gap-3">
           {isLoggedIn ? (
-            /* Avatar dropdown */
+            <>
+              {/* Notification bell */}
+              <div ref={notifRef} style={{ position: "relative" }}>
+                <button
+                  onClick={() => setNotifOpen((v) => !v)}
+                  className="transition-opacity hover:opacity-70"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "6px",
+                    position: "relative",
+                    color: isTransparent ? "rgba(255,255,255,0.85)" : "#555",
+                  }}
+                >
+                  <Bell size={18} />
+                  {unreadCount > 0 && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: 2,
+                        right: 2,
+                        width: 16,
+                        height: 16,
+                        borderRadius: "50%",
+                        backgroundColor: "#ef4444",
+                        color: "#fff",
+                        fontSize: "0.5625rem",
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        border: "2px solid",
+                        borderColor: isTransparent ? "#0a0a0a" : "#fff",
+                      }}
+                    >
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notification dropdown */}
+                {notifOpen && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 8px)",
+                      right: 0,
+                      width: 340,
+                      maxHeight: 420,
+                      backgroundColor: "#fff",
+                      border: "1px solid #E8E8E8",
+                      borderRadius: "8px",
+                      boxShadow: "0 12px 40px rgba(0,0,0,0.12)",
+                      overflow: "hidden",
+                      zIndex: 100,
+                    }}
+                  >
+                    <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid #F0F0F0" }}>
+                      <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "#0a0a0a" }}>Notifications</p>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={markAllAsRead}
+                          style={{ fontSize: "0.6875rem", color: "#888", background: "none", border: "none", cursor: "pointer" }}
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ overflowY: "auto", maxHeight: 360 }}>
+                      {notifications.length === 0 ? (
+                        <div style={{ padding: "2rem", textAlign: "center" }}>
+                          <p style={{ fontSize: "0.8125rem", color: "#ccc" }}>No notifications yet</p>
+                        </div>
+                      ) : (
+                        notifications.slice(0, 15).map((notif) => (
+                          <button
+                            key={notif.id}
+                            onClick={() => {
+                              markAsRead(notif.id);
+                              if (notif.type === "follow") router.push(`/profile/${notif.actor_id}`);
+                              if (notif.type === "message") router.push(`/messages?c=${notif.reference_id}`);
+                              setNotifOpen(false);
+                            }}
+                            className="flex items-start gap-3 w-full text-left transition-colors hover:bg-gray-50"
+                            style={{
+                              padding: "0.75rem 1rem",
+                              borderBottom: "1px solid #F8F8F8",
+                              background: notif.read ? "transparent" : "rgba(59,130,246,0.04)",
+                              border: "none",
+                              borderBlockEnd: "1px solid #F8F8F8",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {notif.actor?.avatar_url ? (
+                              <img
+                                src={notif.actor.avatar_url}
+                                alt=""
+                                style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                              />
+                            ) : (
+                              <div
+                                style={{
+                                  width: 32, height: 32, borderRadius: "50%", backgroundColor: "#F0F0F0",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  fontSize: "0.6875rem", fontWeight: 600, color: "#555", flexShrink: 0,
+                                }}
+                              >
+                                {(notif.actor?.full_name || "?").charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontSize: "0.8125rem", color: "#0a0a0a", lineHeight: 1.4 }}>
+                                <span style={{ fontWeight: 500 }}>{notif.actor?.full_name || "Someone"}</span>{" "}
+                                <span style={{ color: "#666" }}>{notif.message}</span>
+                              </p>
+                              <p style={{ fontSize: "0.6875rem", color: "#bbb", marginTop: "0.2rem" }}>
+                                {formatNotifTime(notif.created_at)}
+                              </p>
+                            </div>
+                            {!notif.read && (
+                              <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#3b82f6", flexShrink: 0, marginTop: 6 }} />
+                            )}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Avatar dropdown */}
             <div ref={dropdownRef} style={{ position: "relative" }}>
               <button
                 onClick={() => setDropdownOpen((v) => !v)}
@@ -249,6 +403,7 @@ export function Navbar() {
                 </div>
               )}
             </div>
+            </>
           ) : (
             /* Logged out CTA */
             <button

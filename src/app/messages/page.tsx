@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, Search, Send, MoreHorizontal } from "lucide-react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { ArrowLeft, Search, Send, MoreHorizontal, Check, CheckCheck } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import { useBlocks } from "@/hooks/useBlocks";
+import { PageTransition } from "@/components/ui/PageTransition";
+import { OnlineIndicator } from "@/components/ui/OnlineIndicator";
 
 interface ConversationRow {
   id: string;
@@ -20,6 +23,7 @@ interface MessageRow {
   sender_id: string;
   content: string;
   created_at: string;
+  read_at: string | null;
 }
 
 interface PartnerProfile {
@@ -28,23 +32,27 @@ interface PartnerProfile {
   avatar_url: string | null;
   location: string;
   interests: string[];
+  last_seen_at: string | null;
 }
 
 interface ConversationWithPartner extends ConversationRow {
   partner: PartnerProfile;
 }
 
-export default function MessagesPage() {
+function MessagesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
+  const { blockedIds } = useBlocks();
   const [conversations, setConversations] = useState<ConversationWithPartner[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [input, setInput] = useState("");
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
   const [loadingConvos, setLoadingConvos] = useState(true);
+  const [partnerTyping, setPartnerTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const supabase = createClient();
 
@@ -78,26 +86,32 @@ export default function MessagesPage() {
 
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, full_name, avatar_url, location, interests")
+      .select("id, full_name, avatar_url, location, interests, last_seen_at")
       .in("id", partnerIds);
 
     const profileMap = new Map(
       (profiles || []).map((p: PartnerProfile) => [p.id, p])
     );
 
-    const enriched: ConversationWithPartner[] = convos.map((c: ConversationRow) => {
-      const partnerId = c.participant_1 === user.id ? c.participant_2 : c.participant_1;
-      return {
-        ...c,
-        partner: profileMap.get(partnerId) || {
-          id: partnerId,
-          full_name: "Unknown",
-          avatar_url: null,
-          location: "",
-          interests: [],
-        },
-      };
-    });
+    const enriched: ConversationWithPartner[] = convos
+      .filter((c: ConversationRow) => {
+        const partnerId = c.participant_1 === user.id ? c.participant_2 : c.participant_1;
+        return !blockedIds.includes(partnerId);
+      })
+      .map((c: ConversationRow) => {
+        const partnerId = c.participant_1 === user.id ? c.participant_2 : c.participant_1;
+        return {
+          ...c,
+          partner: profileMap.get(partnerId) || {
+            id: partnerId,
+            full_name: "Unknown",
+            avatar_url: null,
+            location: "",
+            interests: [],
+            last_seen_at: null,
+          },
+        };
+      });
 
     setConversations(enriched);
     setLoadingConvos(false);
@@ -236,6 +250,7 @@ export default function MessagesPage() {
       sender_id: user.id,
       content,
       created_at: new Date().toISOString(),
+      read_at: null,
     };
     setMessages((prev) => [...prev, optimistic]);
 
@@ -262,6 +277,66 @@ export default function MessagesPage() {
       handleSend();
     }
   };
+
+  // Typing indicator: broadcast when typing
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+    if (!activeId || !user) return;
+
+    // Broadcast typing state
+    supabase.channel(`typing:${activeId}`).send({
+      type: "broadcast",
+      event: "typing",
+      payload: { user_id: user.id },
+    });
+  };
+
+  // Listen for partner typing
+  useEffect(() => {
+    if (!activeId || !user) return;
+
+    const typingChannel = supabase
+      .channel(`typing:${activeId}`)
+      .on("broadcast", { event: "typing" }, (payload) => {
+        if (payload.payload.user_id !== user.id) {
+          setPartnerTyping(true);
+          if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = setTimeout(() => setPartnerTyping(false), 3000);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(typingChannel);
+      setPartnerTyping(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId, user]);
+
+  // Mark messages as read when viewing
+  useEffect(() => {
+    if (!activeId || !user || messages.length === 0) return;
+
+    const unreadFromPartner = messages.filter(
+      (m) => m.sender_id !== user.id && !m.read_at && !m.id.startsWith("temp-")
+    );
+
+    if (unreadFromPartner.length > 0) {
+      const ids = unreadFromPartner.map((m) => m.id);
+      supabase
+        .from("messages")
+        .update({ read_at: new Date().toISOString() })
+        .in("id", ids)
+        .then(() => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              ids.includes(m.id) ? { ...m, read_at: new Date().toISOString() } : m
+            )
+          );
+        });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, activeId, user]);
 
   if (authLoading || !user) {
     return (
@@ -294,6 +369,7 @@ export default function MessagesPage() {
   };
 
   return (
+    <PageTransition>
     <div style={{ backgroundColor: "#fff", minHeight: "100vh", paddingTop: "4rem", display: "flex", flexDirection: "column" }}>
       {/* Header */}
       <div className="hidden md:flex items-center justify-between px-6 lg:px-8 py-8" style={{ borderBottom: "1px solid #EFEFEF" }}>
@@ -411,9 +487,14 @@ export default function MessagesPage() {
                     <p style={{ fontSize: "0.9375rem", fontWeight: 500, color: "#0a0a0a" }}>
                       {active.partner.full_name || "Unknown"}
                     </p>
-                    <p style={{ fontSize: "0.6875rem", color: "#bbb" }}>
-                      {active.partner.location || ""}{active.partner.interests?.[0] ? ` · ${active.partner.interests[0]}` : ""}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <OnlineIndicator lastSeenAt={active.partner.last_seen_at} size={8} showLabel />
+                      {!active.partner.last_seen_at && (
+                        <p style={{ fontSize: "0.6875rem", color: "#bbb" }}>
+                          {active.partner.location || ""}{active.partner.interests?.[0] ? ` · ${active.partner.interests[0]}` : ""}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <button style={{ background: "none", border: "none", cursor: "pointer", color: "#aaa" }}>
@@ -452,15 +533,47 @@ export default function MessagesPage() {
                         }}>
                           {msg.content}
                         </div>
-                        <p style={{
-                          fontSize: "0.625rem", color: "#ddd", marginTop: "0.3rem",
-                          textAlign: msg.sender_id === user.id ? "right" : "left",
+                        <div className="flex items-center gap-1" style={{
+                          marginTop: "0.2rem",
+                          justifyContent: msg.sender_id === user.id ? "flex-end" : "flex-start",
                         }}>
-                          {new Date(msg.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
-                        </p>
+                          <span style={{ fontSize: "0.625rem", color: "#ddd" }}>
+                            {new Date(msg.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                          {msg.sender_id === user.id && !msg.id.startsWith("temp-") && (
+                            msg.read_at ? (
+                              <CheckCheck size={12} style={{ color: "#3b82f6" }} />
+                            ) : (
+                              <Check size={12} style={{ color: "#ccc" }} />
+                            )
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))
+                )}
+                {/* Typing indicator */}
+                {partnerTyping && (
+                  <div className="flex items-end gap-2">
+                    {active.partner.avatar_url ? (
+                      <img src={active.partner.avatar_url} alt="" width={28} height={28}
+                        style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: "#F0F0F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.5rem", fontWeight: 600, color: "#555", flexShrink: 0 }}>
+                        {getInitials(active.partner.full_name)}
+                      </div>
+                    )}
+                    <div style={{
+                      padding: "0.625rem 1rem",
+                      borderRadius: "16px 16px 16px 4px",
+                      backgroundColor: "#F3F3F3",
+                      display: "flex", alignItems: "center", gap: "3px",
+                    }}>
+                      <span className="typing-dot" style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#aaa", animation: "typingBounce 1.4s infinite ease-in-out", animationDelay: "0s" }} />
+                      <span className="typing-dot" style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#aaa", animation: "typingBounce 1.4s infinite ease-in-out", animationDelay: "0.2s" }} />
+                      <span className="typing-dot" style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#aaa", animation: "typingBounce 1.4s infinite ease-in-out", animationDelay: "0.4s" }} />
+                    </div>
+                  </div>
                 )}
                 <div ref={messagesEndRef} />
               </div>
@@ -471,7 +584,7 @@ export default function MessagesPage() {
                   type="text"
                   placeholder={`Message ${active.partner.full_name?.split(" ")[0] || ""}…`}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={handleKey}
                   style={{
                     flex: 1, border: "1px solid #EFEFEF", borderRadius: "24px",
@@ -499,5 +612,18 @@ export default function MessagesPage() {
         </div>
       </div>
     </div>
+    </PageTransition>
+  );
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ fontSize: "0.875rem", color: "#aaa" }}>Loading…</p>
+      </div>
+    }>
+      <MessagesContent />
+    </Suspense>
   );
 }

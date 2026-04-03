@@ -2,20 +2,25 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, MessageCircle, UserPlus, UserCheck } from "lucide-react";
+import { ArrowLeft, MapPin, MessageCircle, UserPlus, UserCheck, ShieldOff, Shield } from "lucide-react";
 import { InterestTag } from "@/components/ui/InterestTag";
 import { ProfileCard } from "@/components/ui/ProfileCard";
 import { FollowListModal } from "@/components/ui/FollowListModal";
+import { OnlineIndicator } from "@/components/ui/OnlineIndicator";
+import { PageTransition } from "@/components/ui/PageTransition";
 
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import { useBlocks } from "@/hooks/useBlocks";
+import { useAffinityScore } from "@/hooks/useAffinityScore";
 import type { SupabaseProfile } from "@/data/profiles";
 
 export default function ProfilePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { user } = useAuth();
-  const [profile, setProfile] = useState<SupabaseProfile | null>(null);
+  const { user, profile: myProfile } = useAuth();
+  const { isBlocked, blockUser, unblockUser } = useBlocks();
+  const [profile, setProfile] = useState<(SupabaseProfile & { last_seen_at?: string }) | null>(null);
   const [suggestions, setSuggestions] = useState<SupabaseProfile[]>([]);
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -38,12 +43,12 @@ export default function ProfilePage() {
     const fetchProfile = async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url, cover_url, location, bio, interests")
+        .select("id, full_name, avatar_url, cover_url, location, bio, interests, last_seen_at")
         .eq("id", id)
         .single();
 
       if (data) {
-        setProfile(data as SupabaseProfile);
+        setProfile(data as SupabaseProfile & { last_seen_at?: string });
       }
       setLoading(false);
     };
@@ -141,8 +146,20 @@ export default function ProfilePage() {
   }
 
   const name = profile.full_name || "Anonymous";
+  const blocked = isBlocked(id);
+
+  const handleBlock = async () => {
+    if (blocked) {
+      await unblockUser(id);
+    } else {
+      if (confirm(`Block ${name}? They won't be able to message you or see your profile.`)) {
+        await blockUser(id);
+      }
+    }
+  };
 
   return (
+    <PageTransition>
     <div style={{ backgroundColor: "#fff", minHeight: "100vh" }}>
       {/* Cover */}
       <div style={{ height: 320, backgroundColor: "#111", position: "relative", overflow: "hidden" }}>
@@ -212,6 +229,20 @@ export default function ProfilePage() {
               {following ? <UserCheck size={13} /> : <UserPlus size={13} />}
               {following ? "Following" : "Follow"}
             </button>
+            <button
+              onClick={handleBlock}
+              className="flex items-center gap-2 transition-opacity hover:opacity-70"
+              style={{
+                fontSize: "0.8125rem", fontWeight: 500, padding: "0.6rem 0.875rem",
+                backgroundColor: "transparent",
+                color: blocked ? "#ef4444" : "#aaa",
+                border: "1px solid", borderColor: blocked ? "#fca5a5" : "#E8E8E8",
+                borderRadius: "3px", cursor: "pointer",
+              }}
+              title={blocked ? "Unblock user" : "Block user"}
+            >
+              {blocked ? <ShieldOff size={13} /> : <Shield size={13} />}
+            </button>
           </div>
         </div>
 
@@ -227,6 +258,8 @@ export default function ProfilePage() {
             <div className="flex items-center gap-2 mb-5">
               <MapPin size={13} color="#aaa" />
               <span style={{ fontSize: "0.8125rem", color: "#aaa" }}>{profile.location || "Unknown"}</span>
+              <span style={{ margin: "0 0.25rem", color: "#ddd" }}>·</span>
+              <OnlineIndicator lastSeenAt={profile.last_seen_at} size={8} showLabel />
             </div>
             <p style={{ fontSize: "1rem", color: "#555", lineHeight: 1.75, maxWidth: 520, marginBottom: "1.75rem", fontWeight: 300 }}>
               {profile.bio || "No bio yet."}
@@ -239,11 +272,32 @@ export default function ProfilePage() {
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {profile.interests.map((interest) => (
-                    <InterestTag key={interest} label={interest} size="md" />
+                    <InterestTag
+                      key={interest}
+                      label={interest}
+                      size="md"
+                      filled={myProfile?.interests?.includes(interest)}
+                    />
                   ))}
                 </div>
               </div>
             )}
+
+            {/* Shared Interests Section */}
+            {(() => {
+              const shared = (profile.interests || []).filter((i) => myProfile?.interests?.includes(i));
+              if (shared.length === 0 || !user) return null;
+              return (
+                <div style={{ marginTop: "1.5rem", padding: "1rem 1.25rem", borderRadius: "8px", backgroundColor: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.15)" }}>
+                  <p style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.08em", color: "#16a34a", textTransform: "uppercase", marginBottom: "0.5rem" }}>
+                    {Math.round((shared.length / new Set([...(myProfile?.interests || []), ...(profile.interests || [])]).size) * 100)}% Affinity Match
+                  </p>
+                  <p style={{ fontSize: "0.8125rem", color: "#555" }}>
+                    You both share: {shared.join(", ")}
+                  </p>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Stats sidebar */}
@@ -317,5 +371,6 @@ export default function ProfilePage() {
         />
       )}
     </div>
+    </PageTransition>
   );
 }

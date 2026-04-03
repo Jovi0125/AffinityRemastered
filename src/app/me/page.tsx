@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { InterestTag } from "@/components/ui/InterestTag";
 import { FollowListModal } from "@/components/ui/FollowListModal";
+import { PageTransition } from "@/components/ui/PageTransition";
 
 import { allInterests } from "@/data/profiles";
 
@@ -190,6 +191,7 @@ export default function MyProfilePage() {
   const currentCover = coverPreview || profile?.cover_url;
 
   return (
+    <PageTransition>
     <div style={{ backgroundColor: "#fff", minHeight: "100vh" }}>
       {/* Hidden file inputs */}
       <input
@@ -475,5 +477,6 @@ export default function MyProfilePage() {
         />
       )}
     </div>
+    </PageTransition>
   );
 }
