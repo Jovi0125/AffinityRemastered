@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { RevealSection } from "@/components/ui/RevealSection";
 import { ProfileCard } from "@/components/ui/ProfileCard";
-import { profiles } from "@/data/profiles";
+import { demoProfiles } from "@/data/profiles";
 
 export function DiscoverSection() {
   const router = useRouter();
@@ -56,7 +56,7 @@ export function DiscoverSection() {
           </RevealSection>
 
           <RevealSection delay={150} className="flex flex-col gap-4">
-            {profiles.slice(0, 3).map((p) => (
+            {demoProfiles.slice(0, 3).map((p) => (
               <ProfileCard key={p.id} profile={p} variant="default" />
             ))}
           </RevealSection>

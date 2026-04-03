@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { ProfileCard } from "@/components/ui/ProfileCard";
 import { InterestTag } from "@/components/ui/InterestTag";
-import { profiles, allInterests } from "@/data/profiles";
+import { allInterests } from "@/data/profiles";
+import type { SupabaseProfile } from "@/data/profiles";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 const filterInterests = allInterests.slice(0, 14);
 const locations = ["Anywhere", "Tokyo", "Seoul", "Barcelona", "London", "Portland", "New York", "Paris"];
@@ -14,18 +17,46 @@ export default function ExplorePage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [location, setLocation] = useState("Anywhere");
   const [showFilters, setShowFilters] = useState(false);
+  const [profiles, setProfiles] = useState<SupabaseProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, cover_url, location, bio, interests")
+        .order("created_at", { ascending: false });
+
+      if (data) {
+        // Exclude current user
+        const filtered = user
+          ? data.filter((p: SupabaseProfile) => p.id !== user.id)
+          : data;
+        setProfiles(filtered as SupabaseProfile[]);
+      }
+      setLoading(false);
+    };
+    fetchProfiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const toggleInterest = (i: string) =>
     setSelected((prev) => prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]);
 
   const filtered = profiles.filter((p) => {
+    const name = p.full_name || "";
+    const bio = p.bio || "";
+    const interests = p.interests || [];
     const matchSearch =
       !search ||
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.bio.toLowerCase().includes(search.toLowerCase()) ||
-      p.interests.some((i) => i.toLowerCase().includes(search.toLowerCase()));
-    const matchInterests = selected.length === 0 || selected.every((s) => p.interests.includes(s));
-    const matchLocation = location === "Anywhere" || p.location.includes(location);
+      name.toLowerCase().includes(search.toLowerCase()) ||
+      bio.toLowerCase().includes(search.toLowerCase()) ||
+      interests.some((i) => i.toLowerCase().includes(search.toLowerCase()));
+    const matchInterests = selected.length === 0 || selected.every((s) => interests.includes(s));
+    const matchLocation = location === "Anywhere" || (p.location || "").includes(location);
     return matchSearch && matchInterests && matchLocation;
   });
 
@@ -99,7 +130,6 @@ export default function ExplorePage() {
           {/* Expanded filters */}
           {showFilters && (
             <div className="mt-6 pt-6" style={{ borderTop: "1px solid #F0F0F0" }}>
-              {/* Location */}
               <div className="mb-5">
                 <p style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.08em", color: "#aaa", textTransform: "uppercase", marginBottom: "0.875rem" }}>
                   Location
@@ -121,8 +151,6 @@ export default function ExplorePage() {
                   ))}
                 </div>
               </div>
-
-              {/* Interests */}
               <div>
                 <p style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.08em", color: "#aaa", textTransform: "uppercase", marginBottom: "0.875rem" }}>
                   Interests
@@ -139,7 +167,6 @@ export default function ExplorePage() {
                   ))}
                 </div>
               </div>
-
               {selected.length > 0 && (
                 <button
                   onClick={() => { setSelected([]); setLocation("Anywhere"); }}
@@ -158,9 +185,11 @@ export default function ExplorePage() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
             <p style={{ fontSize: "0.8125rem", color: "#aaa" }}>
-              {filtered.length === 0
-                ? "No profiles match your filters"
-                : `${filtered.length} ${filtered.length === 1 ? "person" : "people"} found`}
+              {loading
+                ? "Loading…"
+                : filtered.length === 0
+                  ? "No profiles match your filters"
+                  : `${filtered.length} ${filtered.length === 1 ? "person" : "people"} found`}
             </p>
             <div className="flex items-center gap-2">
               <span style={{ fontSize: "0.75rem", color: "#bbb" }}>Sort:</span>
@@ -178,7 +207,7 @@ export default function ExplorePage() {
             </div>
           </div>
 
-          {filtered.length === 0 ? (
+          {!loading && filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24" style={{ borderTop: "1px solid #F0F0F0" }}>
               <p className="font-display" style={{ fontSize: "1.5rem", color: "#ccc", fontStyle: "italic", marginBottom: "0.75rem" }}>
                 No results found.

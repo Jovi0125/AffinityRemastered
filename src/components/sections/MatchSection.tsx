@@ -1,7 +1,6 @@
-import Image from "next/image";
 import { RevealSection } from "@/components/ui/RevealSection";
 import { InterestTag } from "@/components/ui/InterestTag";
-import { profiles, allInterests } from "@/data/profiles";
+import { demoProfiles, allInterests } from "@/data/profiles";
 
 const featuredInterests = allInterests.slice(0, 24);
 const filledIndices = new Set([2, 5, 8, 11, 15, 19]);
@@ -65,8 +64,8 @@ export function MatchSection() {
                 position: "relative", zIndex: 2,
               }}
             >
-              <Image src={profiles[0].avatar} alt="" width={44} height={44}
-                style={{ borderRadius: "50%", objectFit: "cover", filter: "grayscale(100%)" }} />
+              <img src={demoProfiles[0].avatar} alt="" width={44} height={44}
+                style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover" }} />
               <span style={{ fontSize: "0.75rem", fontWeight: 500, color: "#0a0a0a" }}>You</span>
               <span style={{ fontSize: "0.625rem", color: "#aaa" }}>Film · Tea · Travel</span>
             </div>
@@ -95,8 +94,8 @@ export function MatchSection() {
                 position: "relative", zIndex: 2,
               }}
             >
-              <Image src={profiles[4].avatar} alt="" width={44} height={44}
-                style={{ borderRadius: "50%", objectFit: "cover", filter: "grayscale(100%)" }} />
+              <img src={demoProfiles[4].avatar} alt="" width={44} height={44}
+                style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover" }} />
               <span style={{ fontSize: "0.75rem", fontWeight: 500, color: "#0a0a0a" }}>Akira</span>
               <span style={{ fontSize: "0.625rem", color: "#aaa" }}>Typography · Film · Travel</span>
             </div>

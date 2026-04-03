@@ -1,25 +1,24 @@
-import Image from "next/image";
 import { RevealSection } from "@/components/ui/RevealSection";
-import { profiles } from "@/data/profiles";
+import { demoProfiles } from "@/data/profiles";
 
 const testimonials = [
   {
     quote: "I found three people in Kyoto who share my obsession with analog photography. We now have a monthly photo walk. None of this would have happened without Affinity.",
     name: "Maya Chen",
     location: "Tokyo, Japan",
-    avatar: profiles[0].avatar,
+    avatar: demoProfiles[0].avatar,
   },
   {
     quote: "The interest matching is uncanny. The first person I connected with also designs typefaces and collects Coltrane records. Affinity doesn't do surface-level connections.",
     name: "Akira Tanaka",
     location: "Kyoto, Japan",
-    avatar: profiles[4].avatar,
+    avatar: demoProfiles[4].avatar,
   },
   {
     quote: "I moved to London knowing no one. Within a week on Affinity, I had three conversations with people who love exactly the kind of jazz I curate at work.",
     name: "Elara Stone",
     location: "London, UK",
-    avatar: profiles[5].avatar,
+    avatar: demoProfiles[2].avatar,
   },
 ];
 
@@ -70,12 +69,12 @@ export function TestimonialsSection() {
                   &ldquo;{t.quote}&rdquo;
                 </p>
                 <div className="flex items-center gap-3">
-                  <Image
+                  <img
                     src={t.avatar}
                     alt={t.name}
                     width={36}
                     height={36}
-                    style={{ borderRadius: "50%", objectFit: "cover", filter: "grayscale(100%)" }}
+                    style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }}
                   />
                   <div>
                     <p style={{ fontSize: "0.8125rem", fontWeight: 500, color: "#0a0a0a" }}>{t.name}</p>

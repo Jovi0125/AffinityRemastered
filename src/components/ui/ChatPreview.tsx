@@ -1,6 +1,5 @@
 import { ArrowRight } from "lucide-react";
-import Image from "next/image";
-import { profiles } from "@/data/profiles";
+import { demoProfiles } from "@/data/profiles";
 
 const messages = [
   { from: "them", text: "Your photo series was stunning. What film stock were you using?", time: "10:12" },
@@ -23,16 +22,16 @@ export function ChatPreview() {
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: "1px solid #F0F0F0" }}>
-        <Image
-          src={profiles[0].avatar}
-          alt={profiles[0].name}
+        <img
+          src={demoProfiles[0].avatar}
+          alt={demoProfiles[0].name}
           width={36}
           height={36}
-          style={{ borderRadius: "50%", objectFit: "cover", filter: "grayscale(100%)" }}
+          style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }}
         />
         <div>
           <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "#0a0a0a" }}>
-            {profiles[0].name}
+            {demoProfiles[0].name}
           </p>
           <p style={{ fontSize: "0.6875rem", color: "#bbb" }}>Active now</p>
         </div>
@@ -75,14 +74,9 @@ export function ChatPreview() {
         </div>
         <div
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: "50%",
-            backgroundColor: "#0a0a0a",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
+            width: 32, height: 32, borderRadius: "50%",
+            backgroundColor: "#0a0a0a", display: "flex",
+            alignItems: "center", justifyContent: "center", flexShrink: 0,
           }}
         >
           <ArrowRight size={14} color="#fff" />

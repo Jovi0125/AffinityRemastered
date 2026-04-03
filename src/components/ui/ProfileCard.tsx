@@ -1,18 +1,77 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { InterestTag } from "@/components/ui/InterestTag";
-import type { Profile } from "@/data/profiles";
+import type { SupabaseProfile, DemoProfile } from "@/data/profiles";
+
+type ProfileInput = SupabaseProfile | DemoProfile;
+
+function getName(p: ProfileInput): string {
+  return ("full_name" in p ? p.full_name : p.name) || "Anonymous";
+}
+
+function getAvatar(p: ProfileInput): string | null {
+  return "avatar_url" in p ? p.avatar_url : p.avatar || null;
+}
 
 interface ProfileCardProps {
-  profile: Profile;
+  profile: ProfileInput;
   variant?: "default" | "featured" | "compact";
+}
+
+function Avatar({ src, name, size }: { src: string | null; name: string; size: number }) {
+  const initials = (name || "?")
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        width={size}
+        height={size}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          objectFit: "cover",
+          filter: "none",
+          flexShrink: 0,
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        backgroundColor: "#F0F0F0",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: size * 0.35,
+        fontWeight: 600,
+        color: "#555",
+        flexShrink: 0,
+      }}
+    >
+      {initials}
+    </div>
+  );
 }
 
 export function ProfileCard({ profile, variant = "default" }: ProfileCardProps) {
   const [hovered, setHovered] = useState(false);
+  const name = getName(profile);
+  const interests = profile.interests || [];
 
   if (variant === "compact") {
     return (
@@ -30,19 +89,13 @@ export function ProfileCard({ profile, variant = "default" }: ProfileCardProps) 
             backgroundColor: hovered ? "#FAFAFA" : "#fff",
           }}
         >
-          <Image
-            src={profile.avatar}
-            alt={profile.name}
-            width={40}
-            height={40}
-            style={{ borderRadius: "50%", objectFit: "cover", filter: "grayscale(100%)", flexShrink: 0 }}
-          />
+          <Avatar src={getAvatar(profile)} name={name} size={40} />
           <div style={{ minWidth: 0 }}>
             <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "#0a0a0a", marginBottom: "0.1rem" }}>
-              {profile.name}
+              {name}
             </p>
             <p style={{ fontSize: "0.75rem", color: "#888", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {profile.interests.slice(0, 2).join(" · ")}
+              {interests.slice(0, 2).join(" · ")}
             </p>
           </div>
         </div>
@@ -66,46 +119,52 @@ export function ProfileCard({ profile, variant = "default" }: ProfileCardProps) 
           }}
         >
           <div style={{ position: "relative", overflow: "hidden", paddingBottom: "75%" }}>
-            <Image
-              src={profile.avatar}
-              alt={profile.name}
-              fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              style={{
-                objectFit: "cover",
-                filter: "grayscale(100%)",
-                transform: hovered ? "scale(1.04)" : "scale(1)",
-                transition: "transform 0.5s ease",
-              }}
-            />
-            {profile.mutuals !== undefined && (
+            {getAvatar(profile) ? (
+              <img
+                src={getAvatar(profile)!}
+                alt={name}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  filter: "none",
+                  transform: hovered ? "scale(1.04)" : "scale(1)",
+                  transition: "transform 0.5s ease",
+                }}
+              />
+            ) : (
               <div
                 style={{
                   position: "absolute",
-                  top: "0.75rem",
-                  right: "0.75rem",
-                  backgroundColor: "rgba(255,255,255,0.92)",
-                  backdropFilter: "blur(6px)",
-                  padding: "0.2rem 0.6rem",
-                  borderRadius: "2px",
-                  fontSize: "0.6875rem",
-                  color: "#0a0a0a",
-                  fontWeight: 500,
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  backgroundColor: "#E8E8E8",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "3rem",
+                  fontWeight: 600,
+                  color: "#999",
                 }}
               >
-                {profile.mutuals} mutual
+                {(name || "?").charAt(0).toUpperCase()}
               </div>
             )}
           </div>
           <div style={{ padding: "1.125rem" }}>
             <p style={{ fontSize: "0.9375rem", fontWeight: 500, color: "#0a0a0a", marginBottom: "0.2rem" }}>
-              {profile.name}
+              {name}
             </p>
             <p style={{ fontSize: "0.75rem", color: "#999", marginBottom: "0.875rem", fontWeight: 400 }}>
-              {profile.location}
+              {profile.location || "Unknown"}
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {profile.interests.slice(0, 3).map((interest) => (
+              {interests.slice(0, 3).map((interest) => (
                 <InterestTag key={interest} label={interest} size="sm" />
               ))}
             </div>
@@ -132,22 +191,16 @@ export function ProfileCard({ profile, variant = "default" }: ProfileCardProps) 
         }}
       >
         <div className="flex items-start gap-4">
-          <Image
-            src={profile.avatar}
-            alt={profile.name}
-            width={56}
-            height={56}
-            style={{ borderRadius: "50%", objectFit: "cover", filter: "grayscale(100%)", flexShrink: 0 }}
-          />
+          <Avatar src={getAvatar(profile)} name={name} size={56} />
           <div>
             <p style={{ fontSize: "0.9375rem", fontWeight: 500, color: "#0a0a0a", marginBottom: "0.125rem" }}>
-              {profile.name}
+              {name}
             </p>
             <p style={{ fontSize: "0.75rem", color: "#999", marginBottom: "0.75rem" }}>
-              {profile.location}
+              {profile.location || "Unknown"}
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {profile.interests.slice(0, 3).map((interest) => (
+              {interests.slice(0, 3).map((interest) => (
                 <InterestTag key={interest} label={interest} size="sm" />
               ))}
             </div>

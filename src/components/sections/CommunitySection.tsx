@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { RevealSection } from "@/components/ui/RevealSection";
 import { ProfileCard } from "@/components/ui/ProfileCard";
-import { profiles } from "@/data/profiles";
+import { demoProfiles } from "@/data/profiles";
 
 export function CommunitySection() {
   const router = useRouter();
@@ -51,7 +51,7 @@ export function CommunitySection() {
 
         <RevealSection delay={100}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {profiles.map((p) => (
+            {demoProfiles.map((p) => (
               <ProfileCard key={p.id} profile={p} variant="featured" />
             ))}
           </div>
