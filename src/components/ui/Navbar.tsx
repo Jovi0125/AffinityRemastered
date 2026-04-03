@@ -10,7 +10,6 @@ import { useNotifications } from "@/components/providers/NotificationProvider";
 const publicLinks = [
   { label: "Explore", href: "/explore" },
   { label: "About", href: "/#about" },
-  { label: "Community", href: "/#community" },
 ];
 
 export function Navbar() {

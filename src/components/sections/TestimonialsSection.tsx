@@ -24,7 +24,7 @@ const testimonials = [
 
 export function TestimonialsSection() {
   return (
-    <section id="community" style={{ padding: "8rem 0", backgroundColor: "#fff" }}>
+    <section style={{ padding: "8rem 0", backgroundColor: "#fff" }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <RevealSection>
           <div className="text-center mb-16">

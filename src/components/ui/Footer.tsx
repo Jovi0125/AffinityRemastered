@@ -6,7 +6,6 @@ const footerLinks = [
     heading: "Platform",
     links: [
       { label: "Explore", href: "/explore" },
-      { label: "Community", href: "/#community" },
       { label: "Messages", href: "/messages" },
       { label: "Sign In", href: "/signin" },
     ],

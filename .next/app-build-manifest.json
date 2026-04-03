@@ -6,30 +6,30 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/explore/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/explore/page.js"
+      "static/chunks/app/page.js"
     ],
     "/signin/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/signin/page.js"
     ],
-    "/activity/page": [
+    "/explore/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/activity/page.js"
+      "static/chunks/app/explore/page.js"
     ],
     "/messages/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/messages/page.js"
     ],
-    "/page": [
+    "/me/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
+      "static/chunks/app/me/page.js"
     ]
   }
 }
