@@ -40,92 +40,109 @@ export default function SignInPage() {
     }
   };
 
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "0.75rem 1rem",
+    fontSize: "0.875rem",
+    color: "#1a1a2e",
+    backgroundColor: "#f7f7f9",
+    border: "1px solid rgba(0,0,0,0.08)",
+    borderRadius: "12px",
+    outline: "none",
+    transition: "border-color 0.2s ease",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: "block",
+    fontSize: "0.6875rem",
+    fontWeight: 600,
+    letterSpacing: "0.08em",
+    color: "#a1a1aa",
+    textTransform: "uppercase",
+    marginBottom: "0.5rem",
+  };
+
   return (
     <div
       style={{
         minHeight: "100vh",
-        backgroundColor: "#0a0a0a",
+        backgroundColor: "#fff",
         display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         position: "relative",
         overflow: "hidden",
       }}
     >
-
-
-      {/* Radial glow */}
+      {/* Left side — branding */}
       <div
+        className="hidden lg:flex flex-col justify-center px-16"
         style={{
-          position: "absolute",
-          top: "30%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: 600,
-          height: 600,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%)",
+          width: "50%",
+          background: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #faf5ff 100%)",
         }}
-      />
-
-      <div
-        className="w-full max-w-md mx-auto px-6"
-        style={{ position: "relative", zIndex: 1 }}
       >
-        {/* Logo */}
-        <div className="text-center mb-12">
-          <Link
-            href="/"
-            className="font-display inline-block transition-opacity hover:opacity-70"
-            style={{
-              fontSize: "1.75rem",
-              fontWeight: 600,
-              color: "#fff",
-              letterSpacing: "-0.02em",
-              textDecoration: "none",
-            }}
-          >
+        <Link href="/" className="flex items-center gap-2 mb-10" style={{ textDecoration: "none" }}>
+          <img src="/AffinityA.png" alt="Affinity" style={{ height: 40, width: "auto" }} />
+          <span className="font-sans" style={{ fontSize: "1.375rem", fontWeight: 700, color: "#1a1a2e", letterSpacing: "-0.03em" }}>
             Affinity
-          </Link>
-          <p
-            style={{
-              fontSize: "0.9375rem",
-              color: "rgba(255,255,255,0.4)",
-              marginTop: "0.75rem",
-              fontWeight: 300,
-            }}
-          >
-            Welcome back. Sign in to continue.
-          </p>
-        </div>
+          </span>
+        </Link>
 
-        {/* Form card */}
-        <div
+        <h1
+          className="font-display"
           style={{
-            backgroundColor: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: "8px",
-            padding: "2.5rem",
-            backdropFilter: "blur(12px)",
+            fontSize: "3rem",
+            fontWeight: 700,
+            color: "#1a1a2e",
+            lineHeight: 1.1,
+            letterSpacing: "-0.02em",
+            marginBottom: "1.5rem",
           }}
         >
+          Welcome
+          <br />
+          back.
+        </h1>
+
+        <p style={{ fontSize: "1rem", color: "#71717a", lineHeight: 1.7, maxWidth: 380 }}>
+          Sign in to reconnect with your companions, continue your conversations, and discover new connections.
+        </p>
+      </div>
+
+      {/* Right side — form */}
+      <div
+        className="flex items-center justify-center flex-1 px-6"
+        style={{ backgroundColor: "#fff" }}
+      >
+        <div className="w-full" style={{ maxWidth: 400 }}>
+          {/* Mobile logo */}
+          <div className="lg:hidden text-center mb-8">
+            <Link href="/" className="flex items-center justify-center gap-2" style={{ textDecoration: "none" }}>
+              <img src="/AffinityA.png" alt="Affinity" style={{ height: 36, width: "auto" }} />
+              <span className="font-sans" style={{ fontSize: "1.2rem", fontWeight: 700, color: "#1a1a2e" }}>
+                Affinity
+              </span>
+            </Link>
+          </div>
+
+          <h2
+            style={{
+              fontSize: "1.75rem",
+              fontWeight: 700,
+              color: "#1a1a2e",
+              letterSpacing: "-0.02em",
+              marginBottom: "0.5rem",
+            }}
+          >
+            Sign in
+          </h2>
+          <p style={{ fontSize: "0.875rem", color: "#a1a1aa", marginBottom: "2rem" }}>
+            Enter your credentials to access your account.
+          </p>
+
+          {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            {/* Email */}
             <div>
-              <label
-                htmlFor="email"
-                style={{
-                  display: "block",
-                  fontSize: "0.6875rem",
-                  fontWeight: 600,
-                  letterSpacing: "0.08em",
-                  color: "rgba(255,255,255,0.4)",
-                  textTransform: "uppercase",
-                  marginBottom: "0.625rem",
-                }}
-              >
-                Email
-              </label>
+              <label htmlFor="email" style={labelStyle}>Email</label>
               <input
                 id="email"
                 type="email"
@@ -134,38 +151,14 @@ export default function SignInPage() {
                 placeholder="you@example.com"
                 required
                 autoComplete="email"
-                style={{
-                  width: "100%",
-                  padding: "0.75rem 1rem",
-                  fontSize: "0.9375rem",
-                  color: "#fff",
-                  backgroundColor: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: "4px",
-                  outline: "none",
-                  transition: "border-color 0.2s ease",
-                }}
-                onFocus={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.3)")}
-                onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+                style={inputStyle}
+                onFocus={(e) => (e.target.style.borderColor = "#7c3aed")}
+                onBlur={(e) => (e.target.style.borderColor = "rgba(0,0,0,0.08)")}
               />
             </div>
 
-            {/* Password */}
             <div>
-              <label
-                htmlFor="password"
-                style={{
-                  display: "block",
-                  fontSize: "0.6875rem",
-                  fontWeight: 600,
-                  letterSpacing: "0.08em",
-                  color: "rgba(255,255,255,0.4)",
-                  textTransform: "uppercase",
-                  marginBottom: "0.625rem",
-                }}
-              >
-                Password
-              </label>
+              <label htmlFor="password" style={labelStyle}>Password</label>
               <div style={{ position: "relative" }}>
                 <input
                   id="password"
@@ -175,34 +168,16 @@ export default function SignInPage() {
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
-                  style={{
-                    width: "100%",
-                    padding: "0.75rem 3rem 0.75rem 1rem",
-                    fontSize: "0.9375rem",
-                    color: "#fff",
-                    backgroundColor: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "4px",
-                    outline: "none",
-                    transition: "border-color 0.2s ease",
-                  }}
-                  onFocus={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.3)")}
-                  onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+                  style={{ ...inputStyle, paddingRight: "3rem" }}
+                  onFocus={(e) => (e.target.style.borderColor = "#7c3aed")}
+                  onBlur={(e) => (e.target.style.borderColor = "rgba(0,0,0,0.08)")}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   style={{
-                    position: "absolute",
-                    right: "0.875rem",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "rgba(255,255,255,0.3)",
-                    padding: 0,
-                    display: "flex",
+                    position: "absolute", right: "0.875rem", top: "50%", transform: "translateY(-50%)",
+                    background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: 0, display: "flex",
                   }}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
@@ -211,70 +186,48 @@ export default function SignInPage() {
               </div>
             </div>
 
-            {/* Error */}
             {error && (
               <div
                 style={{
-                  padding: "0.75rem 1rem",
-                  fontSize: "0.8125rem",
-                  color: "#ff6b6b",
-                  backgroundColor: "rgba(255,107,107,0.08)",
-                  border: "1px solid rgba(255,107,107,0.15)",
-                  borderRadius: "4px",
+                  padding: "0.75rem 1rem", fontSize: "0.8125rem", color: "#ef4444",
+                  backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "12px",
                 }}
               >
                 {error}
               </div>
             )}
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-center gap-2 transition-opacity hover:opacity-80"
+              className="flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-lg"
               style={{
-                width: "100%",
-                padding: "0.875rem",
-                fontSize: "0.875rem",
-                fontWeight: 500,
-                letterSpacing: "0.04em",
-                backgroundColor: "#fff",
-                color: "#0a0a0a",
-                border: "none",
-                borderRadius: "4px",
-                cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading ? 0.6 : 1,
-                marginTop: "0.5rem",
+                width: "100%", padding: "0.875rem", fontSize: "0.875rem", fontWeight: 600,
+                background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+                color: "#fff", border: "none", borderRadius: "14px",
+                cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1,
+                marginTop: "0.25rem",
               }}
             >
-              {loading ? "SIGNING IN…" : "SIGN IN"} {!loading && <ArrowRight size={14} />}
+              {loading ? "Signing in…" : "Sign In"} {!loading && <ArrowRight size={14} />}
             </button>
           </form>
 
           {/* Divider */}
-          <div
-            className="flex items-center gap-4 my-6"
-            style={{ color: "rgba(255,255,255,0.15)" }}
-          >
-            <div style={{ flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.08)" }} />
-            <span style={{ fontSize: "0.6875rem", letterSpacing: "0.06em" }}>OR</span>
-            <div style={{ flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.08)" }} />
+          <div className="flex items-center gap-4 my-6" style={{ color: "#e5e5e5" }}>
+            <div style={{ flex: 1, height: 1, backgroundColor: "#ebebeb" }} />
+            <span style={{ fontSize: "0.6875rem", letterSpacing: "0.06em", color: "#bbb" }}>OR</span>
+            <div style={{ flex: 1, height: 1, backgroundColor: "#ebebeb" }} />
           </div>
 
-          {/* OAuth placeholder */}
+          {/* OAuth */}
           <button
             type="button"
-            className="flex items-center justify-center gap-3 transition-all hover:border-white/20"
+            className="flex items-center justify-center gap-3 transition-all hover:bg-gray-50"
             style={{
-              width: "100%",
-              padding: "0.75rem",
-              fontSize: "0.8125rem",
-              fontWeight: 500,
-              color: "rgba(255,255,255,0.6)",
-              backgroundColor: "transparent",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "4px",
-              cursor: "pointer",
+              width: "100%", padding: "0.75rem", fontSize: "0.8125rem", fontWeight: 500,
+              color: "#555", backgroundColor: "#fff",
+              border: "1px solid rgba(0,0,0,0.08)", borderRadius: "12px", cursor: "pointer",
             }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -285,27 +238,19 @@ export default function SignInPage() {
             </svg>
             Continue with Google
           </button>
-        </div>
 
-        {/* Footer link */}
-        <p
-          className="text-center mt-8"
-          style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.35)" }}
-        >
-          Don&apos;t have an account?{" "}
-          <Link
-            href="/signup"
-            className="transition-opacity hover:opacity-70"
-            style={{
-              color: "#fff",
-              fontWeight: 500,
-              textDecoration: "none",
-              borderBottom: "1px solid rgba(255,255,255,0.3)",
-            }}
-          >
-            Sign up
-          </Link>
-        </p>
+          {/* Footer */}
+          <p className="text-center mt-8" style={{ fontSize: "0.875rem", color: "#a1a1aa" }}>
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/signup"
+              className="transition-opacity hover:opacity-70"
+              style={{ color: "#7c3aed", fontWeight: 600, textDecoration: "none" }}
+            >
+              Sign up
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

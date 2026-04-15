@@ -6,8 +6,11 @@ export interface SupabaseProfile {
   location: string;
   bio: string;
   interests: string[];
+  availability: string;
   created_at?: string;
 }
+
+export const availabilityOptions = ["Immediate Start", "Weekends Only", "Remote Friendly"];
 
 export const allInterests = [
   "Film Photography", "Travel", "Minimalism", "Literature", "Tea Ceremony",

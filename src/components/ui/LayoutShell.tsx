@@ -5,10 +5,12 @@ import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/ui/Footer";
 
 const authRoutes = ["/signin", "/signup"];
+const noFooterRoutes = ["/messages"];
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = authRoutes.includes(pathname);
+  const showFooter = !noFooterRoutes.includes(pathname);
 
   if (isAuthPage) {
     return <>{children}</>;
@@ -18,7 +20,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     <>
       <Navbar />
       <main>{children}</main>
-      <Footer />
+      {showFooter && <Footer />}
     </>
   );
 }

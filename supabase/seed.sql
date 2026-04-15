@@ -75,6 +75,18 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+DO $$ BEGIN
+  CREATE POLICY "Users can update messages in their conversations"
+    ON public.messages FOR UPDATE
+    USING (
+      conversation_id IN (
+        SELECT id FROM public.conversations
+        WHERE participant_1 = auth.uid() OR participant_2 = auth.uid()
+      )
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- 5. Create two test user accounts
 -- Credentials:
 --   donnel@affinity.app   / Affinity2026!

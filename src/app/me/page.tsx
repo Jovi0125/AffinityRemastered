@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Edit3, Check, X, Plus, Camera, ImagePlus } from "lucide-react";
+import { MapPin, Edit3, Check, X, Plus, Camera, ImagePlus, Share2 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { InterestTag } from "@/components/ui/InterestTag";
 import { FollowListModal } from "@/components/ui/FollowListModal";
 import { PageTransition } from "@/components/ui/PageTransition";
 
-import { allInterests } from "@/data/profiles";
+import { allInterests, availabilityOptions } from "@/data/profiles";
 
 export default function MyProfilePage() {
   const router = useRouter();
@@ -23,6 +23,7 @@ export default function MyProfilePage() {
   const [editBio, setEditBio] = useState("");
   const [editLocation, setEditLocation] = useState("");
   const [editInterests, setEditInterests] = useState<string[]>([]);
+  const [editAvailability, setEditAvailability] = useState("");
   const [showInterestPicker, setShowInterestPicker] = useState(false);
 
   // Image upload state
@@ -49,6 +50,7 @@ export default function MyProfilePage() {
       setEditBio(profile.bio || "");
       setEditLocation(profile.location || "");
       setEditInterests(profile.interests || []);
+      setEditAvailability(profile.availability || "");
     }
   }, [profile]);
 
@@ -110,13 +112,11 @@ export default function MyProfilePage() {
     let newAvatarUrl = profile?.avatar_url || "";
     let newCoverUrl = profile?.cover_url || "";
 
-    // Upload avatar if changed
     if (avatarFile) {
       const url = await uploadFile(avatarFile, `${user.id}/avatar`);
       if (url) newAvatarUrl = `${url}?t=${Date.now()}`;
     }
 
-    // Upload cover if changed
     if (coverFile) {
       const url = await uploadFile(coverFile, `${user.id}/cover`);
       if (url) newCoverUrl = `${url}?t=${Date.now()}`;
@@ -132,6 +132,7 @@ export default function MyProfilePage() {
         bio: editBio,
         location: editLocation,
         interests: editInterests,
+        availability: editAvailability,
         avatar_url: newAvatarUrl,
         cover_url: newCoverUrl,
       });
@@ -162,6 +163,7 @@ export default function MyProfilePage() {
       setEditBio(profile.bio || "");
       setEditLocation(profile.location || "");
       setEditInterests(profile.interests || []);
+      setEditAvailability(profile.availability || "");
     }
   };
 
@@ -171,10 +173,15 @@ export default function MyProfilePage() {
     );
   };
 
+  const formatCount = (n: number) => {
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return n.toString();
+  };
+
   if (loading || !user) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ fontSize: "0.875rem", color: "#aaa" }}>Loading…</p>
+        <p style={{ fontSize: "0.875rem", color: "#a1a1aa" }}>Loading…</p>
       </div>
     );
   }
@@ -192,28 +199,16 @@ export default function MyProfilePage() {
 
   return (
     <PageTransition>
-    <div style={{ backgroundColor: "#fff", minHeight: "100vh" }}>
+    <div style={{ backgroundColor: "#faf9fd", minHeight: "100vh" }}>
       {/* Hidden file inputs */}
-      <input
-        ref={avatarInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleAvatarSelect}
-        style={{ display: "none" }}
-      />
-      <input
-        ref={coverInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleCoverSelect}
-        style={{ display: "none" }}
-      />
+      <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarSelect} style={{ display: "none" }} />
+      <input ref={coverInputRef} type="file" accept="image/*" onChange={handleCoverSelect} style={{ display: "none" }} />
 
       {/* Cover */}
       <div
         style={{
           height: 280,
-          backgroundColor: "#111",
+          backgroundColor: "#1a1a2e",
           position: "relative",
           overflow: "hidden",
           cursor: editing ? "pointer" : "default",
@@ -221,41 +216,24 @@ export default function MyProfilePage() {
         onClick={() => editing && coverInputRef.current?.click()}
       >
         {currentCover ? (
-          <img
-            src={currentCover}
-            alt="Cover"
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              filter: "grayscale(80%) brightness(0.6)",
-            }}
-          />
+          <img src={currentCover} alt="Cover" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "brightness(0.7)" }} />
         ) : (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              backgroundImage: "linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%)",
-            }}
-          />
+          <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #1a1a2e 0%, #312e81 50%, #1a1a2e 100%)" }} />
         )}
 
-        {/* Cover edit overlay */}
+        {/* Gradient overlay */}
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0, height: "60%",
+          background: "linear-gradient(to top, rgba(26,26,46,0.9) 0%, transparent 100%)",
+        }} />
+
         {editing && (
           <div
             style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-              backgroundColor: "rgba(0,0,0,0.3)",
-              color: "rgba(255,255,255,0.8)",
-              fontSize: "0.8125rem",
-              fontWeight: 500,
-              transition: "opacity 0.2s ease",
+              position: "absolute", inset: 0,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
+              backgroundColor: "rgba(0,0,0,0.3)", color: "rgba(255,255,255,0.8)",
+              fontSize: "0.8125rem", fontWeight: 500,
             }}
           >
             <ImagePlus size={18} />
@@ -265,125 +243,187 @@ export default function MyProfilePage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 lg:px-8">
+        {/* Header */}
         <div
-          className="flex flex-col sm:flex-row sm:items-end justify-between gap-6"
-          style={{ marginTop: "-52px", marginBottom: "2.5rem", position: "relative", zIndex: 10 }}
+          className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"
+          style={{ marginTop: "-60px", marginBottom: "1.5rem", position: "relative", zIndex: 10 }}
         >
-          {/* Avatar */}
-          <div style={{ position: "relative" }}>
-            {currentAvatar ? (
-              <img
-                src={currentAvatar}
-                alt={displayName}
-                style={{
-                  width: 104, height: 104, borderRadius: "50%", objectFit: "cover",
-                  border: "4px solid #fff",
-                  boxShadow: "0 2px 16px rgba(0,0,0,0.12)",
-                  cursor: editing ? "pointer" : "default",
-                }}
-                onClick={() => editing && avatarInputRef.current?.click()}
-              />
-            ) : (
-              <div
-                style={{
-                  width: 104, height: 104, borderRadius: "50%", backgroundColor: "#F0F0F0",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "2rem", fontWeight: 600, color: "#555",
-                  border: "4px solid #fff", boxShadow: "0 2px 16px rgba(0,0,0,0.12)",
-                  cursor: editing ? "pointer" : "default",
-                }}
-                onClick={() => editing && avatarInputRef.current?.click()}
-              >
-                {initials}
-              </div>
-            )}
-
-            {/* Avatar edit badge */}
-            {editing && (
-              <button
-                onClick={() => avatarInputRef.current?.click()}
-                style={{
-                  position: "absolute",
-                  bottom: 2,
-                  right: 2,
-                  width: 30,
-                  height: 30,
-                  borderRadius: "50%",
-                  backgroundColor: "#0a0a0a",
-                  color: "#fff",
-                  border: "2px solid #fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                }}
-              >
-                <Camera size={13} />
-              </button>
-            )}
-          </div>
-
-          {!editing ? (
-            <button
-              onClick={() => setEditing(true)}
-              className="flex items-center gap-2 transition-opacity hover:opacity-70"
-              style={{
-                fontSize: "0.8125rem", fontWeight: 500, letterSpacing: "0.03em",
-                padding: "0.6rem 1.25rem", backgroundColor: "#0a0a0a", color: "#fff",
-                border: "none", borderRadius: "3px", cursor: "pointer",
-              }}
-            >
-              <Edit3 size={13} /> Edit Profile
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <button onClick={handleCancel} className="flex items-center gap-2 transition-opacity hover:opacity-70"
-                style={{ fontSize: "0.8125rem", fontWeight: 500, padding: "0.6rem 1.25rem", backgroundColor: "transparent", color: "#888", border: "1px solid #D8D8D8", borderRadius: "3px", cursor: "pointer" }}>
-                <X size={13} /> Cancel
-              </button>
-              <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 transition-opacity hover:opacity-80"
-                style={{ fontSize: "0.8125rem", fontWeight: 500, padding: "0.6rem 1.25rem", backgroundColor: "#0a0a0a", color: "#fff", border: "none", borderRadius: "3px", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>
-                <Check size={13} /> {saving ? (uploading ? "Uploading…" : "Saving…") : "Save"}
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          <div className="lg:col-span-2">
-            {editing ? (
-              <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Your name" className="font-display"
-                style={{ fontSize: "clamp(1.75rem, 3vw, 2.5rem)", fontWeight: 500, color: "#0a0a0a", letterSpacing: "-0.02em", marginBottom: "0.5rem", width: "100%", border: "none", borderBottom: "2px solid #E8E8E8", outline: "none", padding: "0.25rem 0", backgroundColor: "transparent" }} />
-            ) : (
-              <h1 className="font-display" style={{ fontSize: "clamp(1.75rem, 3vw, 2.5rem)", fontWeight: 500, color: "#0a0a0a", letterSpacing: "-0.02em", marginBottom: "0.5rem" }}>
-                {displayName}
-              </h1>
-            )}
-
-            <div className="flex items-center gap-2 mb-5">
-              <MapPin size={13} color="#aaa" />
-              {editing ? (
-                <input type="text" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} placeholder="Your location"
-                  style={{ fontSize: "0.8125rem", color: "#555", border: "none", borderBottom: "1px solid #E8E8E8", outline: "none", padding: "0.15rem 0", backgroundColor: "transparent", width: 250 }} />
+          <div className="flex items-end gap-4">
+            {/* Avatar */}
+            <div style={{ position: "relative" }}>
+              {currentAvatar ? (
+                <img
+                  src={currentAvatar}
+                  alt={displayName}
+                  style={{
+                    width: 110, height: 110, borderRadius: "50%", objectFit: "cover",
+                    border: "4px solid #faf9fd",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                    cursor: editing ? "pointer" : "default",
+                  }}
+                  onClick={() => editing && avatarInputRef.current?.click()}
+                />
               ) : (
-                <span style={{ fontSize: "0.8125rem", color: "#aaa" }}>
-                  {profile?.location || "Add your location"}
-                </span>
+                <div
+                  style={{
+                    width: 110, height: 110, borderRadius: "50%",
+                    background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "2.5rem", fontWeight: 600, color: "#fff",
+                    border: "4px solid #faf9fd",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                    cursor: editing ? "pointer" : "default",
+                  }}
+                  onClick={() => editing && avatarInputRef.current?.click()}
+                >
+                  {initials}
+                </div>
+              )}
+
+              {editing && (
+                <button
+                  onClick={() => avatarInputRef.current?.click()}
+                  style={{
+                    position: "absolute", bottom: 2, right: 2,
+                    width: 32, height: 32, borderRadius: "50%",
+                    background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+                    color: "#fff", border: "2px solid #faf9fd",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: "pointer",
+                  }}
+                >
+                  <Camera size={14} />
+                </button>
               )}
             </div>
 
-            {editing ? (
-              <textarea value={editBio} onChange={(e) => setEditBio(e.target.value)} placeholder="Tell people about yourself…" rows={3}
-                style={{ fontSize: "1rem", color: "#555", lineHeight: 1.75, maxWidth: 520, marginBottom: "1.75rem", fontWeight: 300, width: "100%", border: "1px solid #E8E8E8", borderRadius: "4px", padding: "0.75rem", outline: "none", resize: "vertical", backgroundColor: "#FAFAFA", fontFamily: "inherit" }} />
-            ) : (
-              <p style={{ fontSize: "1rem", color: "#555", lineHeight: 1.75, maxWidth: 520, marginBottom: "1.75rem", fontWeight: 300 }}>
-                {profile?.bio || "Add a bio to tell people about yourself."}
-              </p>
-            )}
+            {/* Name + location */}
+            <div style={{ marginBottom: "0.5rem" }}>
+              {editing ? (
+                <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Your name"
+                  className="font-display"
+                  style={{
+                    fontSize: "1.75rem", fontWeight: 700, color: "#fff",
+                    letterSpacing: "-0.01em", width: "100%",
+                    border: "none", borderBottom: "2px solid rgba(255,255,255,0.3)",
+                    outline: "none", padding: "0.15rem 0", backgroundColor: "transparent",
+                    textShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                  }}
+                />
+              ) : (
+                <h1
+                  className="font-display"
+                  style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", letterSpacing: "-0.01em", textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
+                >
+                  {displayName}
+                </h1>
+              )}
+              <div className="flex items-center gap-1.5">
+                <MapPin size={12} color="#c4b5fd" />
+                {editing ? (
+                  <input type="text" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} placeholder="Your location"
+                    style={{ fontSize: "0.8125rem", color: "#c4b5fd", border: "none", borderBottom: "1px solid rgba(255,255,255,0.2)", outline: "none", padding: "0.1rem 0", backgroundColor: "transparent" }}
+                  />
+                ) : (
+                  <span style={{ fontSize: "0.8125rem", color: "#c4b5fd" }}>
+                    {profile?.location || "Add your location"}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
 
-            <div>
-              <p style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.08em", color: "#bbb", textTransform: "uppercase", marginBottom: "0.875rem" }}>
-                Interests
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            {!editing ? (
+              <>
+                <button
+                  onClick={() => setEditing(true)}
+                  className="flex items-center gap-2 transition-all duration-200 hover:shadow-md"
+                  style={{
+                    fontSize: "0.8125rem", fontWeight: 600, padding: "0.6rem 1.25rem",
+                    backgroundColor: "#fff", color: "#1a1a2e",
+                    border: "1px solid rgba(0,0,0,0.08)", borderRadius: "12px", cursor: "pointer",
+                  }}
+                >
+                  <Edit3 size={13} /> Edit Profile
+                </button>
+                <button
+                  className="flex items-center justify-center transition-all duration-200 hover:shadow-md"
+                  style={{
+                    width: 38, height: 38, borderRadius: "12px",
+                    backgroundColor: "#fff", border: "1px solid rgba(0,0,0,0.08)",
+                    cursor: "pointer", color: "#555",
+                  }}
+                >
+                  <Share2 size={16} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={handleCancel} className="flex items-center gap-2 transition-all hover:shadow-md"
+                  style={{ fontSize: "0.8125rem", fontWeight: 600, padding: "0.6rem 1.25rem", backgroundColor: "#fff", color: "#888", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "12px", cursor: "pointer" }}>
+                  <X size={13} /> Cancel
+                </button>
+                <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 transition-all hover:shadow-lg"
+                  style={{
+                    fontSize: "0.8125rem", fontWeight: 600, padding: "0.6rem 1.25rem",
+                    background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+                    color: "#fff", border: "none", borderRadius: "12px",
+                    cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1,
+                  }}>
+                  <Check size={13} /> {saving ? (uploading ? "Uploading…" : "Saving…") : "Save"}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="flex items-center gap-8 mb-8" style={{ paddingTop: "0.5rem" }}>
+          <button onClick={() => setFollowModal("followers")} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "center" }}>
+            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#1a1a2e" }}>{formatCount(followerCount)}</p>
+            <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Followers</p>
+          </button>
+          <button onClick={() => setFollowModal("following")} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "center" }}>
+            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#1a1a2e" }}>{formatCount(followingCount)}</p>
+            <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Following</p>
+          </button>
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#1a1a2e" }}>0</p>
+            <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Journals</p>
+          </div>
+        </div>
+
+        {/* Two column layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ paddingBottom: "3rem" }}>
+          {/* Left col */}
+          <div className="lg:col-span-1 flex flex-col gap-5">
+            {/* About card */}
+            <div style={{ backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem", boxShadow: "var(--shadow-sm)" }}>
+              <p style={{ fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", color: "#7c3aed", textTransform: "uppercase", marginBottom: "0.75rem" }}>
+                About
+              </p>
+              {editing ? (
+                <textarea value={editBio} onChange={(e) => setEditBio(e.target.value)} placeholder="Tell people about yourself…" rows={4}
+                  style={{
+                    fontSize: "0.9375rem", color: "#555", lineHeight: 1.7, width: "100%",
+                    border: "1px solid #ede9fe", borderRadius: "12px", padding: "0.75rem",
+                    outline: "none", resize: "vertical", backgroundColor: "#f5f3ff",
+                    fontFamily: "inherit",
+                  }}
+                />
+              ) : (
+                <p style={{ fontSize: "0.9375rem", color: "#555", lineHeight: 1.7 }}>
+                  {profile?.bio || "Add a bio to tell people about yourself."}
+                </p>
+              )}
+            </div>
+
+            {/* Interests card */}
+            <div style={{ backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem", boxShadow: "var(--shadow-sm)" }}>
+              <p style={{ fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", color: "#7c3aed", textTransform: "uppercase", marginBottom: "0.75rem" }}>
+                Curated Interests
               </p>
               <div className="flex flex-wrap gap-2">
                 {editing ? (
@@ -394,7 +434,7 @@ export default function MyProfilePage() {
                       </button>
                     ))}
                     <button onClick={() => setShowInterestPicker((v) => !v)} className="flex items-center gap-1 transition-opacity hover:opacity-70"
-                      style={{ fontSize: "0.75rem", color: "#888", border: "1px dashed #D8D8D8", borderRadius: "3px", padding: "0.3rem 0.75rem", background: "none", cursor: "pointer" }}>
+                      style={{ fontSize: "0.75rem", color: "#7c3aed", border: "1px dashed #c4b5fd", borderRadius: "20px", padding: "0.25rem 0.75rem", background: "none", cursor: "pointer", fontWeight: 500 }}>
                       <Plus size={12} /> Add
                     </button>
                   </>
@@ -412,7 +452,7 @@ export default function MyProfilePage() {
               </div>
               {editing && showInterestPicker && (
                 <div className="mt-3 p-4 flex flex-wrap gap-2"
-                  style={{ border: "1px solid #EFEFEF", borderRadius: "6px", backgroundColor: "#FAFAFA", maxHeight: 200, overflowY: "auto" }}>
+                  style={{ border: "1px solid #ede9fe", borderRadius: "14px", backgroundColor: "#f5f3ff", maxHeight: 200, overflowY: "auto" }}>
                   {allInterests.filter((i) => !editInterests.includes(i)).map((interest) => (
                     <button key={interest} onClick={() => toggleInterest(interest)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
                       <InterestTag label={interest} size="sm" />
@@ -421,40 +461,41 @@ export default function MyProfilePage() {
                 </div>
               )}
             </div>
-          </div>
 
-          <div>
-            <div style={{ border: "1px solid #EFEFEF", borderRadius: "6px", padding: "1.5rem", marginBottom: "1.5rem" }}>
-              {[
-                { label: "Followers", value: followerCount, key: "followers" as const },
-                { label: "Following", value: followingCount, key: "following" as const },
-              ].map((stat, i) => (
-                <button
-                  key={stat.label}
-                  onClick={() => setFollowModal(stat.key)}
-                  className="flex items-center justify-between py-3 w-full transition-colors"
-                  style={{
-                    borderTop: i > 0 ? "1px solid #F5F5F5" : "none",
-                    background: "none",
-                    border: i > 0 ? undefined : "none",
-                    borderBottom: "none",
-                    borderLeft: "none",
-                    borderRight: "none",
-                    cursor: "pointer",
-                    padding: "0.75rem 0",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
-                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-                >
-                  <span style={{ fontSize: "0.8125rem", color: "#999" }}>{stat.label}</span>
-                  <span style={{ fontSize: "0.9375rem", fontWeight: 500, color: "#0a0a0a" }}>
-                    {stat.value.toLocaleString()}
-                  </span>
-                </button>
-              ))}
+            {/* Availability card */}
+            <div style={{ backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem", boxShadow: "var(--shadow-sm)" }}>
+              <p style={{ fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", color: "#7c3aed", textTransform: "uppercase", marginBottom: "0.75rem" }}>
+                Availability
+              </p>
+              {editing ? (
+                <div className="flex flex-col gap-2">
+                  {availabilityOptions.map((opt) => (
+                    <label key={opt} className="flex items-center gap-2 cursor-pointer" style={{ fontSize: "0.8125rem", color: "#555" }}>
+                      <input
+                        type="radio" name="availability"
+                        checked={editAvailability === opt}
+                        onChange={() => setEditAvailability(opt)}
+                        style={{ accentColor: "#7c3aed" }}
+                      />
+                      {opt}
+                    </label>
+                  ))}
+                  {editAvailability && (
+                    <button onClick={() => setEditAvailability("")} style={{ fontSize: "0.75rem", color: "#a1a1aa", background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0, marginTop: "0.25rem" }}>
+                      Clear selection
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <p style={{ fontSize: "0.8125rem", color: profile?.availability ? "#555" : "#ccc", fontStyle: profile?.availability ? "normal" : "italic" }}>
+                  {profile?.availability || "Not set"}
+                </p>
+              )}
             </div>
-            <div style={{ border: "1px solid #EFEFEF", borderRadius: "6px", padding: "1.25rem" }}>
-              <p style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.08em", color: "#bbb", textTransform: "uppercase", marginBottom: "0.625rem" }}>
+
+            {/* Account */}
+            <div style={{ backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem", boxShadow: "var(--shadow-sm)" }}>
+              <p style={{ fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", color: "#7c3aed", textTransform: "uppercase", marginBottom: "0.5rem" }}>
                 Account
               </p>
               <p style={{ fontSize: "0.8125rem", color: "#888", marginBottom: "0.25rem" }}>{user.email}</p>
@@ -463,11 +504,42 @@ export default function MyProfilePage() {
               </p>
             </div>
           </div>
+
+          {/* Right col — Companion Logbook */}
+          <div className="lg:col-span-2">
+            <div style={{ backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem", boxShadow: "var(--shadow-sm)", minHeight: 300 }}>
+              <div className="flex items-center justify-between mb-5">
+                <h2 style={{ fontSize: "1.375rem", fontWeight: 700, color: "#1a1a2e" }}>
+                  Companion Logbook
+                </h2>
+                <div className="flex items-center gap-4">
+                  <button style={{ fontSize: "0.8125rem", fontWeight: 500, color: "#7c3aed", background: "none", border: "none", cursor: "pointer" }}>
+                    All Entries
+                  </button>
+                  <button style={{ fontSize: "0.8125rem", fontWeight: 500, color: "#a1a1aa", background: "none", border: "none", cursor: "pointer" }}>
+                    Favorites
+                  </button>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #1a1a2e 0%, #312e81 100%)",
+                  borderRadius: "16px",
+                  padding: "3rem 2rem",
+                  textAlign: "center",
+                }}
+              >
+                <p style={{ fontSize: "1.125rem", fontWeight: 600, color: "#fff", marginBottom: "0.5rem" }}>
+                  Start your journal
+                </p>
+                <p style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.6)" }}>
+                  Document your companion walks, events, and stories here.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-
-
-
-        <div style={{ paddingBottom: "6rem" }} />
       </div>
       {followModal && user && (
         <FollowListModal

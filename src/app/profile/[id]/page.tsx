@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, MessageCircle, UserPlus, UserCheck, ShieldOff, Shield } from "lucide-react";
+import { MapPin, MessageCircle, UserPlus, UserCheck, ShieldOff, Shield, Share2, Star } from "lucide-react";
 import { InterestTag } from "@/components/ui/InterestTag";
 import { ProfileCard } from "@/components/ui/ProfileCard";
 import { FollowListModal } from "@/components/ui/FollowListModal";
@@ -43,7 +43,7 @@ export default function ProfilePage() {
     const fetchProfile = async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url, cover_url, location, bio, interests, last_seen_at")
+        .select("id, full_name, avatar_url, cover_url, location, bio, interests, availability, last_seen_at")
         .eq("id", id)
         .single();
 
@@ -116,7 +116,6 @@ export default function ProfilePage() {
       router.push("/signin");
       return;
     }
-    // Find or create conversation
     const { data: existing } = await supabase
       .from("conversations")
       .select("id")
@@ -140,7 +139,7 @@ export default function ProfilePage() {
   if (loading || !profile) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ fontSize: "0.875rem", color: "#aaa" }}>{loading ? "Loading…" : "Profile not found."}</p>
+        <p style={{ fontSize: "0.875rem", color: "#a1a1aa" }}>{loading ? "Loading…" : "Profile not found."}</p>
       </div>
     );
   }
@@ -158,201 +157,306 @@ export default function ProfilePage() {
     }
   };
 
+  const formatCount = (n: number) => {
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return n.toString();
+  };
+
   return (
     <PageTransition>
-    <div style={{ backgroundColor: "#fff", minHeight: "100vh" }}>
+    <div style={{ backgroundColor: "#faf9fd", minHeight: "100vh" }}>
       {/* Cover */}
-      <div style={{ height: 320, backgroundColor: "#111", position: "relative", overflow: "hidden" }}>
+      <div style={{ height: 280, backgroundColor: "#1a1a2e", position: "relative", overflow: "hidden" }}>
         {profile.cover_url ? (
-          <img src={profile.cover_url} alt="Cover" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(80%) brightness(0.6)" }} />
+          <img src={profile.cover_url} alt="Cover" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "brightness(0.7)" }} />
         ) : (
-          <div style={{ width: "100%", height: "100%", backgroundImage: "linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%)" }} />
+          <div style={{
+            width: "100%", height: "100%",
+            background: "linear-gradient(135deg, #1a1a2e 0%, #312e81 50%, #1a1a2e 100%)",
+          }} />
         )}
-        <button
-          onClick={() => router.back()}
-          className="absolute top-20 left-6 lg:left-8 flex items-center gap-2 transition-opacity hover:opacity-70"
-          style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.7)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
-        >
-          <ArrowLeft size={14} /> Back
-        </button>
+        {/* Purple gradient at bottom */}
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0, height: "60%",
+          background: "linear-gradient(to top, rgba(26,26,46,0.9) 0%, transparent 100%)",
+        }} />
       </div>
 
-      {/* Profile section */}
+      {/* Profile header */}
       <div className="max-w-5xl mx-auto px-6 lg:px-8">
         <div
-          className="flex flex-col sm:flex-row sm:items-end justify-between gap-6"
-          style={{ marginTop: "-52px", marginBottom: "2.5rem", position: "relative", zIndex: 10 }}
+          className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"
+          style={{ marginTop: "-60px", marginBottom: "1.5rem", position: "relative", zIndex: 10 }}
         >
-          {profile.avatar_url ? (
-            <img
-              src={profile.avatar_url}
-              alt={name}
-              style={{
-                width: 104, height: 104, borderRadius: "50%", objectFit: "cover",
-                border: "4px solid #fff",
-                boxShadow: "0 2px 16px rgba(0,0,0,0.12)",
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: 104, height: 104, borderRadius: "50%", backgroundColor: "#F0F0F0",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "2rem", fontWeight: 600, color: "#555",
-                border: "4px solid #fff", boxShadow: "0 2px 16px rgba(0,0,0,0.12)",
-              }}
-            >
-              {name.charAt(0).toUpperCase()}
+          <div className="flex items-end gap-4">
+            {/* Avatar */}
+            <div style={{ position: "relative" }}>
+              {profile.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={name}
+                  style={{
+                    width: 110, height: 110, borderRadius: "50%", objectFit: "cover",
+                    border: "4px solid #faf9fd",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 110, height: 110, borderRadius: "50%",
+                    background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "2.5rem", fontWeight: 600, color: "#fff",
+                    border: "4px solid #faf9fd",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                  }}
+                >
+                  {name.charAt(0).toUpperCase()}
+                </div>
+              )}
             </div>
-          )}
-          <div className="flex items-center gap-3">
+
+            {/* Name + location (on cover overlap) */}
+            <div style={{ marginBottom: "0.5rem" }}>
+              <h1
+                className="font-display"
+                style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", letterSpacing: "-0.01em", textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
+              >
+                {name}
+              </h1>
+              <div className="flex items-center gap-1.5">
+                <MapPin size={12} color="#c4b5fd" />
+                <span style={{ fontSize: "0.8125rem", color: "#c4b5fd" }}>{profile.location || "Unknown"}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
             <button
               onClick={handleMessage}
-              className="flex items-center gap-2 transition-opacity hover:opacity-70"
-              style={{ fontSize: "0.8125rem", fontWeight: 500, letterSpacing: "0.03em", padding: "0.6rem 1.25rem", backgroundColor: "transparent", color: "#0a0a0a", border: "1px solid #D8D8D8", borderRadius: "3px", cursor: "pointer" }}
-            >
-              <MessageCircle size={13} /> Message
-            </button>
-            <button
-              onClick={handleFollow}
-              disabled={followLoading}
-              className="flex items-center gap-2 transition-all hover:opacity-80"
+              className="flex items-center gap-2 transition-all duration-200 hover:shadow-md"
               style={{
-                fontSize: "0.8125rem", fontWeight: 500, letterSpacing: "0.03em", padding: "0.6rem 1.25rem",
-                backgroundColor: following ? "transparent" : "#0a0a0a",
-                color: following ? "#0a0a0a" : "#fff",
-                border: "1px solid", borderColor: following ? "#D8D8D8" : "#0a0a0a",
-                borderRadius: "3px", cursor: followLoading ? "not-allowed" : "pointer",
-                opacity: followLoading ? 0.6 : 1,
+                fontSize: "0.8125rem", fontWeight: 600, padding: "0.6rem 1.25rem",
+                backgroundColor: "#fff", color: "#1a1a2e",
+                border: "1px solid rgba(0,0,0,0.08)", borderRadius: "12px", cursor: "pointer",
               }}
             >
-              {following ? <UserCheck size={13} /> : <UserPlus size={13} />}
-              {following ? "Following" : "Follow"}
+              Edit Profile
             </button>
             <button
-              onClick={handleBlock}
-              className="flex items-center gap-2 transition-opacity hover:opacity-70"
+              onClick={() => {}}
+              className="flex items-center justify-center transition-all duration-200 hover:shadow-md"
               style={{
-                fontSize: "0.8125rem", fontWeight: 500, padding: "0.6rem 0.875rem",
-                backgroundColor: "transparent",
-                color: blocked ? "#ef4444" : "#aaa",
-                border: "1px solid", borderColor: blocked ? "#fca5a5" : "#E8E8E8",
-                borderRadius: "3px", cursor: "pointer",
+                width: 38, height: 38, borderRadius: "12px",
+                backgroundColor: "#fff", border: "1px solid rgba(0,0,0,0.08)",
+                cursor: "pointer", color: "#555",
               }}
-              title={blocked ? "Unblock user" : "Block user"}
             >
-              {blocked ? <ShieldOff size={13} /> : <Shield size={13} />}
+              <Share2 size={16} />
             </button>
           </div>
         </div>
 
-        {/* Bio */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          <div className="lg:col-span-2">
-            <h1
-              className="font-display"
-              style={{ fontSize: "clamp(1.75rem, 3vw, 2.5rem)", fontWeight: 500, color: "#0a0a0a", letterSpacing: "-0.02em", marginBottom: "0.5rem" }}
-            >
-              {name}
-            </h1>
-            <div className="flex items-center gap-2 mb-5">
-              <MapPin size={13} color="#aaa" />
-              <span style={{ fontSize: "0.8125rem", color: "#aaa" }}>{profile.location || "Unknown"}</span>
-              <span style={{ margin: "0 0.25rem", color: "#ddd" }}>·</span>
-              <OnlineIndicator lastSeenAt={profile.last_seen_at} size={8} showLabel />
-            </div>
-            <p style={{ fontSize: "1rem", color: "#555", lineHeight: 1.75, maxWidth: 520, marginBottom: "1.75rem", fontWeight: 300 }}>
-              {profile.bio || "No bio yet."}
-            </p>
+        {/* Stats row */}
+        <div className="flex items-center gap-8 mb-8" style={{ paddingTop: "0.5rem" }}>
+          <button onClick={() => setFollowModal("followers")} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "center" }}>
+            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#1a1a2e" }}>{formatCount(followerCount)}</p>
+            <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Followers</p>
+          </button>
+          <button onClick={() => setFollowModal("following")} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "center" }}>
+            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#1a1a2e" }}>{formatCount(followingCount)}</p>
+            <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Following</p>
+          </button>
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#1a1a2e" }}>0</p>
+            <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Journals</p>
+          </div>
+        </div>
 
-            {(profile.interests?.length ?? 0) > 0 && (
-              <div>
-                <p style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.08em", color: "#bbb", textTransform: "uppercase", marginBottom: "0.875rem" }}>
-                  Interests
+        {/* Two column layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ paddingBottom: "3rem" }}>
+          {/* Left column */}
+          <div className="lg:col-span-1 flex flex-col gap-5">
+            {/* About card */}
+            <div style={{
+              backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem",
+              boxShadow: "var(--shadow-sm)",
+            }}>
+              <p style={{
+                fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em",
+                color: "#7c3aed", textTransform: "uppercase", marginBottom: "0.75rem",
+              }}>
+                About
+              </p>
+              <p style={{ fontSize: "0.9375rem", color: "#555", lineHeight: 1.7 }}>
+                {profile.bio || "No bio yet."}
+              </p>
+            </div>
+
+            {/* Interests card */}
+            <div style={{
+              backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem",
+              boxShadow: "var(--shadow-sm)",
+            }}>
+              <p style={{
+                fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em",
+                color: "#7c3aed", textTransform: "uppercase", marginBottom: "0.75rem",
+              }}>
+                Curated Interests
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {(profile.interests || []).map((interest) => (
+                  <InterestTag
+                    key={interest}
+                    label={interest}
+                    size="md"
+                    filled={myProfile?.interests?.includes(interest)}
+                  />
+                ))}
+                {(profile.interests?.length ?? 0) === 0 && (
+                  <p style={{ fontSize: "0.8125rem", color: "#ccc", fontStyle: "italic" }}>
+                    No interests added yet.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Availability card */}
+            {profile.availability && (
+              <div style={{
+                backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem",
+                boxShadow: "var(--shadow-sm)",
+              }}>
+                <p style={{
+                  fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em",
+                  color: "#7c3aed", textTransform: "uppercase", marginBottom: "0.75rem",
+                }}>
+                  Availability
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {profile.interests.map((interest) => (
-                    <InterestTag
-                      key={interest}
-                      label={interest}
-                      size="md"
-                      filled={myProfile?.interests?.includes(interest)}
-                    />
-                  ))}
+                <div className="flex items-center gap-2">
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#22c55e" }} />
+                  <span style={{ fontSize: "0.875rem", color: "#555" }}>{profile.availability}</span>
                 </div>
               </div>
             )}
 
-            {/* Shared Interests Section */}
-            {(() => {
-              const shared = (profile.interests || []).filter((i) => myProfile?.interests?.includes(i));
-              if (shared.length === 0 || !user) return null;
-              return (
-                <div style={{ marginTop: "1.5rem", padding: "1rem 1.25rem", borderRadius: "8px", backgroundColor: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.15)" }}>
-                  <p style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.08em", color: "#16a34a", textTransform: "uppercase", marginBottom: "0.5rem" }}>
-                    {Math.round((shared.length / new Set([...(myProfile?.interests || []), ...(profile.interests || [])]).size) * 100)}% Affinity Match
-                  </p>
-                  <p style={{ fontSize: "0.8125rem", color: "#555" }}>
-                    You both share: {shared.join(", ")}
-                  </p>
-                </div>
-              );
-            })()}
-          </div>
-
-          {/* Stats sidebar */}
-          <div>
-            <div style={{ border: "1px solid #EFEFEF", borderRadius: "6px", padding: "1.5rem", marginBottom: "1.5rem" }}>
-              {[
-                { label: "Followers", value: followerCount, key: "followers" as const },
-                { label: "Following", value: followingCount, key: "following" as const },
-              ].map((stat, i) => (
-                <button
-                  key={stat.label}
-                  onClick={() => setFollowModal(stat.key)}
-                  className="flex items-center justify-between py-3 w-full"
-                  style={{
-                    borderTop: i > 0 ? "1px solid #F5F5F5" : "none",
-                    background: "none",
-                    border: i > 0 ? undefined : "none",
-                    borderBottom: "none",
-                    borderLeft: "none",
-                    borderRight: "none",
-                    cursor: "pointer",
-                    padding: "0.75rem 0",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
-                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-                >
-                  <span style={{ fontSize: "0.8125rem", color: "#999" }}>{stat.label}</span>
-                  <span style={{ fontSize: "0.9375rem", fontWeight: 500, color: "#0a0a0a" }}>
-                    {stat.value.toLocaleString()}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <div style={{ border: "1px solid #EFEFEF", borderRadius: "6px", padding: "1.25rem" }}>
-              <p style={{ fontSize: "0.8125rem", color: "#888", marginBottom: "0.875rem", lineHeight: 1.6 }}>
-                Start a conversation with {name.split(" ")[0]} about your shared interests.
-              </p>
+            {/* Actions card */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleFollow}
+                disabled={followLoading}
+                className="flex-1 flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-md"
+                style={{
+                  fontSize: "0.8125rem", fontWeight: 600, padding: "0.7rem 1rem",
+                  background: following ? "#fff" : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+                  color: following ? "#7c3aed" : "#fff",
+                  border: following ? "1.5px solid #7c3aed" : "none",
+                  borderRadius: "14px", cursor: followLoading ? "not-allowed" : "pointer",
+                  opacity: followLoading ? 0.6 : 1,
+                }}
+              >
+                {following ? <UserCheck size={14} /> : <UserPlus size={14} />}
+                {following ? "Following" : "Follow"}
+              </button>
               <button
                 onClick={handleMessage}
-                className="w-full transition-opacity hover:opacity-80"
-                style={{ fontSize: "0.8125rem", fontWeight: 500, padding: "0.625rem", backgroundColor: "#0a0a0a", color: "#fff", border: "none", borderRadius: "3px", cursor: "pointer" }}
+                className="flex-1 flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-md"
+                style={{
+                  fontSize: "0.8125rem", fontWeight: 600, padding: "0.7rem 1rem",
+                  backgroundColor: "#fff", color: "#1a1a2e",
+                  border: "1.5px solid rgba(0,0,0,0.08)", borderRadius: "14px", cursor: "pointer",
+                }}
               >
-                Send a message
+                <MessageCircle size={14} /> Message
               </button>
+            </div>
+
+            {/* Block button */}
+            <button
+              onClick={handleBlock}
+              className="flex items-center gap-2 transition-opacity hover:opacity-70"
+              style={{
+                fontSize: "0.75rem", fontWeight: 500, padding: "0.5rem 0.875rem",
+                backgroundColor: "transparent",
+                color: blocked ? "#ef4444" : "#a1a1aa",
+                border: "none", cursor: "pointer", alignSelf: "flex-start",
+              }}
+              title={blocked ? "Unblock user" : "Block user"}
+            >
+              {blocked ? <ShieldOff size={13} /> : <Shield size={13} />}
+              {blocked ? "Unblock" : "Block User"}
+            </button>
+          </div>
+
+          {/* Right column — Companion Logbook */}
+          <div className="lg:col-span-2">
+            <div style={{
+              backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem",
+              boxShadow: "var(--shadow-sm)", minHeight: 300,
+            }}>
+              <div className="flex items-center justify-between mb-5">
+                <h2 style={{ fontSize: "1.375rem", fontWeight: 700, color: "#1a1a2e" }}>
+                  Companion Logbook
+                </h2>
+                <div className="flex items-center gap-4">
+                  <button style={{ fontSize: "0.8125rem", fontWeight: 500, color: "#7c3aed", background: "none", border: "none", cursor: "pointer" }}>
+                    All Entries
+                  </button>
+                  <button style={{ fontSize: "0.8125rem", fontWeight: 500, color: "#a1a1aa", background: "none", border: "none", cursor: "pointer" }}>
+                    Favorites
+                  </button>
+                </div>
+              </div>
+
+              {/* Empty logbook state */}
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #1a1a2e 0%, #312e81 100%)",
+                  borderRadius: "16px",
+                  padding: "3rem 2rem",
+                  textAlign: "center",
+                  marginBottom: "1rem",
+                }}
+              >
+                <p style={{ fontSize: "1.125rem", fontWeight: 600, color: "#fff", marginBottom: "0.5rem" }}>
+                  No journal entries yet
+                </p>
+                <p style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.6)" }}>
+                  {name.split(" ")[0]}&apos;s companion stories will appear here.
+                </p>
+              </div>
+
+              {/* Shared interests match */}
+              {(() => {
+                const shared = (profile.interests || []).filter((i) => myProfile?.interests?.includes(i));
+                if (shared.length === 0 || !user) return null;
+                return (
+                  <div style={{
+                    padding: "1rem 1.25rem", borderRadius: "14px",
+                    backgroundColor: "#f5f3ff", border: "1px solid #ede9fe",
+                  }}>
+                    <p style={{ fontSize: "0.6875rem", fontWeight: 700, letterSpacing: "0.08em", color: "#7c3aed", textTransform: "uppercase", marginBottom: "0.375rem" }}>
+                      {Math.round((shared.length / new Set([...(myProfile?.interests || []), ...(profile.interests || [])]).size) * 100)}% Affinity Match
+                    </p>
+                    <p style={{ fontSize: "0.8125rem", color: "#555" }}>
+                      You both share: {shared.join(", ")}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
 
-
-
         {/* Suggestions */}
         {suggestions.length > 0 && (
-          <div style={{ borderTop: "1px solid #F0F0F0", marginTop: "4rem", paddingTop: "3rem", paddingBottom: "6rem" }}>
-            <p style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.08em", color: "#bbb", textTransform: "uppercase", marginBottom: "1.5rem" }}>
+          <div style={{ borderTop: "1px solid rgba(0,0,0,0.04)", paddingTop: "2.5rem", paddingBottom: "4rem" }}>
+            <p style={{
+              fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em",
+              color: "#a1a1aa", textTransform: "uppercase", marginBottom: "1.25rem",
+            }}>
               You might also like
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">

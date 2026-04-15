@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
-import { ArrowLeft, Search, Send, MoreHorizontal, Check, CheckCheck } from "lucide-react";
+import { ArrowLeft, Search, Send, MoreHorizontal, Check, CheckCheck, Video, Phone, Smile } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { useBlocks } from "@/hooks/useBlocks";
 import { PageTransition } from "@/components/ui/PageTransition";
-import { OnlineIndicator } from "@/components/ui/OnlineIndicator";
+import { OnlineIndicator, isUserOnline } from "@/components/ui/OnlineIndicator";
 
 interface ConversationRow {
   id: string;
@@ -51,6 +51,7 @@ function MessagesContent() {
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
   const [loadingConvos, setLoadingConvos] = useState(true);
   const [partnerTyping, setPartnerTyping] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -79,7 +80,6 @@ function MessagesContent() {
       return;
     }
 
-    // Fetch partner profiles
     const partnerIds = convos.map((c: ConversationRow) =>
       c.participant_1 === user.id ? c.participant_2 : c.participant_1
     );
@@ -116,7 +116,6 @@ function MessagesContent() {
     setConversations(enriched);
     setLoadingConvos(false);
 
-    // Auto-select from URL param or first conversation
     const urlConvoId = searchParams.get("c");
     if (urlConvoId && enriched.find((c) => c.id === urlConvoId)) {
       setActiveId(urlConvoId);
@@ -132,7 +131,6 @@ function MessagesContent() {
 
     if (!user) return;
 
-    // Live updates for conversation list (last_message, timestamps)
     const convoChannel = supabase
       .channel("conversations-list")
       .on(
@@ -168,8 +166,6 @@ function MessagesContent() {
 
       if (data && isMounted) {
         setMessages((prev) => {
-          // Merge: keep optimistic messages, add new ones from DB
-          const realIds = new Set(data.map((m: MessageRow) => m.id));
           const optimistic = prev.filter(
             (m) => m.id.startsWith("temp-") && !data.some(
               (d: MessageRow) => d.sender_id === m.sender_id && d.content === m.content
@@ -182,7 +178,6 @@ function MessagesContent() {
 
     fetchMessages();
 
-    // Realtime subscription for instant delivery
     const channel = supabase
       .channel(`messages:${activeId}`)
       .on(
@@ -211,15 +206,8 @@ function MessagesContent() {
           });
         }
       )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log("[Realtime] Subscribed to messages:", activeId);
-        } else if (status === "CHANNEL_ERROR") {
-          console.warn("[Realtime] Channel error — falling back to polling");
-        }
-      });
+      .subscribe();
 
-    // Polling fallback: catches messages if Realtime RLS blocks delivery
     const pollInterval = setInterval(() => {
       if (isMounted) fetchMessages();
     }, 3000);
@@ -243,7 +231,6 @@ function MessagesContent() {
     const content = input.trim();
     setInput("");
 
-    // Optimistic update
     const optimistic: MessageRow = {
       id: `temp-${Date.now()}`,
       conversation_id: activeId,
@@ -254,20 +241,17 @@ function MessagesContent() {
     };
     setMessages((prev) => [...prev, optimistic]);
 
-    // Insert into DB
     await supabase.from("messages").insert({
       conversation_id: activeId,
       sender_id: user.id,
       content,
     });
 
-    // Update conversation last_message
     await supabase
       .from("conversations")
       .update({ last_message: content, last_message_at: new Date().toISOString() })
       .eq("id", activeId);
 
-    // Refresh conversation list
     fetchConversations();
   };
 
@@ -278,12 +262,10 @@ function MessagesContent() {
     }
   };
 
-  // Typing indicator: broadcast when typing
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
     if (!activeId || !user) return;
 
-    // Broadcast typing state
     supabase.channel(`typing:${activeId}`).send({
       type: "broadcast",
       event: "typing",
@@ -341,7 +323,7 @@ function MessagesContent() {
   if (authLoading || !user) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ fontSize: "0.875rem", color: "#aaa" }}>Loading…</p>
+        <p style={{ fontSize: "0.875rem", color: "#a1a1aa" }}>Loading…</p>
       </div>
     );
   }
@@ -365,250 +347,354 @@ function MessagesContent() {
     if (diffMin < 60) return `${diffMin}m ago`;
     const diffHr = Math.floor(diffMin / 60);
     if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDays = Math.floor(diffHr / 24);
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays}d ago`;
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
+  const formatMsgTime = (iso: string) => {
+    return new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const filteredConvos = searchTerm
+    ? conversations.filter((c) => (c.partner.full_name || "").toLowerCase().includes(searchTerm.toLowerCase()))
+    : conversations;
+
   return (
     <PageTransition>
-    <div style={{ backgroundColor: "#fff", minHeight: "100vh", paddingTop: "4rem", display: "flex", flexDirection: "column" }}>
-      {/* Header */}
-      <div className="hidden md:flex items-center justify-between px-6 lg:px-8 py-8" style={{ borderBottom: "1px solid #EFEFEF" }}>
-        <div className="max-w-7xl w-full mx-auto flex items-center justify-between">
-          <div>
-            <p style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.1em", color: "#bbb", textTransform: "uppercase", marginBottom: "0.375rem" }}>
-              Messages
-            </p>
-            <h1 className="font-display" style={{ fontSize: "1.875rem", fontWeight: 500, color: "#0a0a0a", letterSpacing: "-0.02em" }}>
-              Your conversations.
-            </h1>
-          </div>
-          <button
-            onClick={() => router.push("/explore")}
-            style={{ fontSize: "0.8125rem", fontWeight: 500, letterSpacing: "0.04em", padding: "0.625rem 1.25rem", backgroundColor: "#0a0a0a", color: "#fff", border: "none", borderRadius: "3px", cursor: "pointer" }}
-          >
-            New Connection
-          </button>
-        </div>
-      </div>
-
-      {/* Chat layout */}
-      <div className="flex flex-1" style={{ overflow: "hidden", height: "calc(100vh - 4rem - 97px)" }}>
-        {/* Sidebar */}
+    <div style={{ backgroundColor: "#faf9fd", minHeight: "100vh", paddingTop: "4rem", display: "flex", flexDirection: "column" }}>
+      {/* Main chat layout */}
+      <div className="max-w-7xl mx-auto w-full px-4 lg:px-8 py-6 flex-1" style={{ display: "flex", flexDirection: "column" }}>
         <div
-          className={`${mobileView === "chat" ? "hidden" : "flex"} md:flex flex-col`}
-          style={{ width: "100%", maxWidth: 340, borderRight: "1px solid #EFEFEF", flexShrink: 0, overflowY: "auto" }}
+          style={{
+            display: "flex",
+            flex: 1,
+            borderRadius: "24px",
+            overflow: "hidden",
+            backgroundColor: "#fff",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+            height: "calc(100vh - 8rem)",
+          }}
         >
-          <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid #F5F5F5" }}>
-            <div className="flex items-center gap-2" style={{ border: "1px solid #EFEFEF", borderRadius: "4px", padding: "0.5rem 0.875rem" }}>
-              <Search size={13} color="#ccc" />
-              <input type="text" placeholder="Search messages…"
-                style={{ flex: 1, border: "none", outline: "none", fontSize: "0.8125rem", color: "#0a0a0a", backgroundColor: "transparent" }} />
-            </div>
-          </div>
-
-          {loadingConvos ? (
-            <div style={{ padding: "2rem", textAlign: "center" }}>
-              <p style={{ fontSize: "0.8125rem", color: "#ccc" }}>Loading…</p>
-            </div>
-          ) : conversations.length === 0 ? (
-            <div style={{ padding: "2rem", textAlign: "center" }}>
-              <p style={{ fontSize: "0.875rem", color: "#ccc", marginBottom: "0.5rem" }}>No conversations yet.</p>
-              <p style={{ fontSize: "0.75rem", color: "#ddd" }}>Visit a profile and click Message to start.</p>
-            </div>
-          ) : (
-            conversations.map((convo) => (
-              <button
-                key={convo.id}
-                onClick={() => { setActiveId(convo.id); setMobileView("chat"); }}
+          {/* ─── Sidebar ─── */}
+          <div
+            className={`${mobileView === "chat" ? "hidden" : "flex"} md:flex flex-col`}
+            style={{
+              width: "100%",
+              maxWidth: 340,
+              borderRight: "1px solid rgba(0,0,0,0.06)",
+              flexShrink: 0,
+              overflow: "hidden",
+            }}
+          >
+            {/* Sidebar header */}
+            <div style={{ padding: "1.5rem 1.25rem 1rem" }}>
+              <h2 style={{ fontSize: "1.375rem", fontWeight: 700, color: "#1a1a2e", marginBottom: "1rem" }}>
+                Messages
+              </h2>
+              <div
+                className="flex items-center gap-2"
                 style={{
-                  display: "flex", alignItems: "flex-start", gap: "0.875rem",
-                  padding: "1.125rem 1.25rem",
-                  backgroundColor: activeId === convo.id ? "#F8F8F8" : "transparent",
-                  borderBottom: "1px solid #F8F8F8",
-                  borderLeft: activeId === convo.id ? "2px solid #0a0a0a" : "2px solid transparent",
-                  cursor: "pointer", textAlign: "left", width: "100%", transition: "background 0.15s ease",
+                  border: "1px solid rgba(0,0,0,0.06)",
+                  borderRadius: "12px",
+                  padding: "0.5rem 0.875rem",
+                  backgroundColor: "#f7f7f9",
                 }}
               >
-                <div style={{ position: "relative", flexShrink: 0 }}>
-                  {convo.partner.avatar_url ? (
-                    <img src={convo.partner.avatar_url} alt="" width={42} height={42}
-                      style={{ width: 42, height: 42, borderRadius: "50%", objectFit: "cover" }} />
-                  ) : (
-                    <div style={{ width: 42, height: 42, borderRadius: "50%", backgroundColor: "#F0F0F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8125rem", fontWeight: 600, color: "#555" }}>
-                      {getInitials(convo.partner.full_name)}
-                    </div>
-                  )}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="flex items-center justify-between mb-0.5">
-                    <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "#0a0a0a" }}>
-                      {convo.partner.full_name || "Unknown"}
-                    </p>
-                    <span style={{ fontSize: "0.6875rem", color: "#ccc", flexShrink: 0 }}>
-                      {formatTime(convo.last_message_at)}
-                    </span>
-                  </div>
-                  <p style={{
-                    fontSize: "0.8125rem", color: "#aaa",
-                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                  }}>
-                    {convo.last_message || "No messages yet"}
-                  </p>
-                </div>
-              </button>
-            ))
-          )}
-        </div>
-
-        {/* Chat panel */}
-        <div className={`${mobileView === "list" ? "hidden" : "flex"} md:flex flex-col flex-1`} style={{ minWidth: 0, overflow: "hidden" }}>
-          {!active ? (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <p style={{ fontSize: "0.875rem", color: "#ccc" }}>Select a conversation to start messaging.</p>
-            </div>
-          ) : (
-            <>
-              {/* Chat header */}
-              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid #EFEFEF", flexShrink: 0 }}>
-                <div className="flex items-center gap-3">
-                  <button className="md:hidden p-1" onClick={() => setMobileView("list")}
-                    style={{ color: "#aaa", background: "none", border: "none", cursor: "pointer" }}>
-                    <ArrowLeft size={16} />
-                  </button>
-                  {active.partner.avatar_url ? (
-                    <img src={active.partner.avatar_url} alt="" width={36} height={36}
-                      style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }} />
-                  ) : (
-                    <div style={{ width: 36, height: 36, borderRadius: "50%", backgroundColor: "#F0F0F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 600, color: "#555" }}>
-                      {getInitials(active.partner.full_name)}
-                    </div>
-                  )}
-                  <div>
-                    <p style={{ fontSize: "0.9375rem", fontWeight: 500, color: "#0a0a0a" }}>
-                      {active.partner.full_name || "Unknown"}
-                    </p>
-                    <div className="flex items-center gap-1.5">
-                      <OnlineIndicator lastSeenAt={active.partner.last_seen_at} size={8} showLabel />
-                      {!active.partner.last_seen_at && (
-                        <p style={{ fontSize: "0.6875rem", color: "#bbb" }}>
-                          {active.partner.location || ""}{active.partner.interests?.[0] ? ` · ${active.partner.interests[0]}` : ""}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <button style={{ background: "none", border: "none", cursor: "pointer", color: "#aaa" }}>
-                  <MoreHorizontal size={18} />
-                </button>
+                <Search size={14} color="#a1a1aa" />
+                <input
+                  type="text"
+                  placeholder="Search conversations"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    flex: 1, border: "none", outline: "none",
+                    fontSize: "0.8125rem", color: "#1a1a2e", backgroundColor: "transparent",
+                  }}
+                />
               </div>
+            </div>
 
-              {/* Messages */}
-              <div className="flex-1 flex flex-col gap-4 overflow-y-auto px-6 py-6" style={{ scrollBehavior: "smooth" }}>
-                {messages.length === 0 ? (
-                  <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <p style={{ fontSize: "0.875rem", color: "#ddd", fontStyle: "italic" }}>
-                      Say hello to {active.partner.full_name?.split(" ")[0] || "them"}!
-                    </p>
-                  </div>
-                ) : (
-                  messages.map((msg) => (
-                    <div key={msg.id} className={`flex ${msg.sender_id === user.id ? "justify-end" : "justify-start"} items-end gap-2`}>
-                      {msg.sender_id !== user.id && (
-                        active.partner.avatar_url ? (
-                          <img src={active.partner.avatar_url} alt="" width={28} height={28}
-                            style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+            {/* Conversation list */}
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              {loadingConvos ? (
+                <div style={{ padding: "2rem", textAlign: "center" }}>
+                  <p style={{ fontSize: "0.8125rem", color: "#ccc" }}>Loading…</p>
+                </div>
+              ) : filteredConvos.length === 0 ? (
+                <div style={{ padding: "2rem", textAlign: "center" }}>
+                  <p style={{ fontSize: "0.875rem", color: "#ccc", marginBottom: "0.5rem" }}>No conversations yet.</p>
+                  <p style={{ fontSize: "0.75rem", color: "#ddd" }}>Visit a profile and click Message to start.</p>
+                </div>
+              ) : (
+                filteredConvos.map((convo) => {
+                  const isActive = activeId === convo.id;
+                  const online = convo.partner.last_seen_at ? isUserOnline(convo.partner.last_seen_at) : false;
+                  return (
+                    <button
+                      key={convo.id}
+                      onClick={() => { setActiveId(convo.id); setMobileView("chat"); }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "0.75rem",
+                        padding: "0.875rem 1.25rem",
+                        backgroundColor: isActive ? "#f5f3ff" : "transparent",
+                        borderBottom: "1px solid rgba(0,0,0,0.03)",
+                        borderLeft: isActive ? "3px solid #7c3aed" : "3px solid transparent",
+                        cursor: "pointer", textAlign: "left", width: "100%",
+                        transition: "all 0.15s ease",
+                        border: "none",
+                        borderBlockEnd: "1px solid rgba(0,0,0,0.03)",
+                      }}
+                    >
+                      {/* Avatar with online dot */}
+                      <div style={{ position: "relative", flexShrink: 0 }}>
+                        {convo.partner.avatar_url ? (
+                          <img src={convo.partner.avatar_url} alt="" width={44} height={44}
+                            style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover" }} />
                         ) : (
-                          <div style={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: "#F0F0F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.5rem", fontWeight: 600, color: "#555", flexShrink: 0 }}>
-                            {getInitials(active.partner.full_name)}
+                          <div style={{
+                            width: 44, height: 44, borderRadius: "50%",
+                            background: "linear-gradient(135deg, #ede9fe 0%, #c4b5fd 100%)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: "0.8125rem", fontWeight: 600, color: "#7c3aed",
+                          }}>
+                            {getInitials(convo.partner.full_name)}
                           </div>
-                        )
-                      )}
-                      <div>
-                        <div style={{
-                          maxWidth: 400, padding: "0.75rem 1rem",
-                          borderRadius: msg.sender_id === user.id ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                          backgroundColor: msg.sender_id === user.id ? "#0a0a0a" : "#F3F3F3",
-                          color: msg.sender_id === user.id ? "#fff" : "#0a0a0a",
-                          fontSize: "0.875rem", lineHeight: 1.55,
-                        }}>
-                          {msg.content}
-                        </div>
-                        <div className="flex items-center gap-1" style={{
-                          marginTop: "0.2rem",
-                          justifyContent: msg.sender_id === user.id ? "flex-end" : "flex-start",
-                        }}>
-                          <span style={{ fontSize: "0.625rem", color: "#ddd" }}>
-                            {new Date(msg.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                          {msg.sender_id === user.id && !msg.id.startsWith("temp-") && (
-                            msg.read_at ? (
-                              <CheckCheck size={12} style={{ color: "#3b82f6" }} />
-                            ) : (
-                              <Check size={12} style={{ color: "#ccc" }} />
-                            )
-                          )}
-                        </div>
+                        )}
+                        {online && (
+                          <span style={{
+                            position: "absolute", bottom: 1, right: 1,
+                            width: 10, height: 10, borderRadius: "50%",
+                            backgroundColor: "#22c55e", border: "2px solid #fff",
+                          }} />
+                        )}
                       </div>
-                    </div>
-                  ))
-                )}
-                {/* Typing indicator */}
-                {partnerTyping && (
-                  <div className="flex items-end gap-2">
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="flex items-center justify-between mb-0.5">
+                          <p style={{ fontSize: "0.875rem", fontWeight: isActive ? 600 : 500, color: isActive ? "#7c3aed" : "#1a1a2e" }}>
+                            {convo.partner.full_name || "Unknown"}
+                          </p>
+                          <span style={{ fontSize: "0.6875rem", color: "#bbb", flexShrink: 0 }}>
+                            {formatTime(convo.last_message_at)}
+                          </span>
+                        </div>
+                        <p style={{
+                          fontSize: "0.8125rem", color: "#a1a1aa",
+                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                        }}>
+                          {convo.last_message || "No messages yet"}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* ─── Chat Panel ─── */}
+          <div className={`${mobileView === "list" ? "hidden" : "flex"} md:flex flex-col flex-1`} style={{ minWidth: 0, overflow: "hidden" }}>
+            {!active ? (
+              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ textAlign: "center" }}>
+                  <p style={{ fontSize: "1.25rem", fontWeight: 600, color: "#c4b5fd", marginBottom: "0.5rem" }}>💬</p>
+                  <p style={{ fontSize: "0.9375rem", color: "#a1a1aa" }}>Select a conversation to start messaging.</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Chat header */}
+                <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid rgba(0,0,0,0.04)", flexShrink: 0 }}>
+                  <div className="flex items-center gap-3">
+                    <button className="md:hidden p-1" onClick={() => setMobileView("list")}
+                      style={{ color: "#a1a1aa", background: "none", border: "none", cursor: "pointer" }}>
+                      <ArrowLeft size={16} />
+                    </button>
                     {active.partner.avatar_url ? (
-                      <img src={active.partner.avatar_url} alt="" width={28} height={28}
-                        style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                      <img src={active.partner.avatar_url} alt="" width={40} height={40}
+                        style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
                     ) : (
-                      <div style={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: "#F0F0F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.5rem", fontWeight: 600, color: "#555", flexShrink: 0 }}>
+                      <div style={{
+                        width: 40, height: 40, borderRadius: "50%",
+                        background: "linear-gradient(135deg, #ede9fe 0%, #c4b5fd 100%)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: "0.8125rem", fontWeight: 600, color: "#7c3aed",
+                      }}>
                         {getInitials(active.partner.full_name)}
                       </div>
                     )}
-                    <div style={{
-                      padding: "0.625rem 1rem",
-                      borderRadius: "16px 16px 16px 4px",
-                      backgroundColor: "#F3F3F3",
-                      display: "flex", alignItems: "center", gap: "3px",
-                    }}>
-                      <span className="typing-dot" style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#aaa", animation: "typingBounce 1.4s infinite ease-in-out", animationDelay: "0s" }} />
-                      <span className="typing-dot" style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#aaa", animation: "typingBounce 1.4s infinite ease-in-out", animationDelay: "0.2s" }} />
-                      <span className="typing-dot" style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#aaa", animation: "typingBounce 1.4s infinite ease-in-out", animationDelay: "0.4s" }} />
+                    <div>
+                      <p style={{ fontSize: "0.9375rem", fontWeight: 600, color: "#1a1a2e" }}>
+                        {active.partner.full_name || "Unknown"}
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        {active.partner.last_seen_at && isUserOnline(active.partner.last_seen_at) ? (
+                          <span style={{ fontSize: "0.6875rem", color: "#22c55e", fontWeight: 500 }}>Online</span>
+                        ) : (
+                          <span style={{ fontSize: "0.6875rem", color: "#bbb" }}>
+                            {active.partner.location || ""}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
+                  <div className="flex items-center gap-3">
+                    <button style={{ background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: "4px" }}>
+                      <Video size={18} />
+                    </button>
+                    <button style={{ background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: "4px" }}>
+                      <Phone size={18} />
+                    </button>
+                    <button style={{ background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: "4px" }}>
+                      <MoreHorizontal size={18} />
+                    </button>
+                  </div>
+                </div>
 
-              {/* Input */}
-              <div className="flex items-center gap-3 px-6 py-4" style={{ borderTop: "1px solid #EFEFEF", flexShrink: 0 }}>
-                <input
-                  type="text"
-                  placeholder={`Message ${active.partner.full_name?.split(" ")[0] || ""}…`}
-                  value={input}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKey}
-                  style={{
-                    flex: 1, border: "1px solid #EFEFEF", borderRadius: "24px",
-                    padding: "0.625rem 1.125rem", fontSize: "0.875rem",
-                    color: "#0a0a0a", outline: "none", backgroundColor: "#FAFAFA",
-                  }}
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={!input.trim()}
-                  style={{
-                    width: 36, height: 36, borderRadius: "50%",
-                    backgroundColor: input.trim() ? "#0a0a0a" : "#F0F0F0",
-                    color: input.trim() ? "#fff" : "#ccc",
-                    border: "none", cursor: input.trim() ? "pointer" : "default",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0, transition: "all 0.15s ease",
-                  }}
-                >
-                  <Send size={14} />
-                </button>
-              </div>
-            </>
-          )}
+                {/* Messages */}
+                <div className="flex-1 flex flex-col gap-3 overflow-y-auto px-6 py-6" style={{ scrollBehavior: "smooth", backgroundColor: "#faf9fd" }}>
+                  {messages.length === 0 ? (
+                    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <p style={{ fontSize: "0.875rem", color: "#c4b5fd", fontStyle: "italic" }}>
+                        Say hello to {active.partner.full_name?.split(" ")[0] || "them"}! 👋
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Today separator */}
+                      <div className="flex items-center justify-center my-2">
+                        <span style={{
+                          fontSize: "0.6875rem", fontWeight: 600, color: "#a1a1aa",
+                          backgroundColor: "#fff", padding: "0.25rem 0.75rem",
+                          borderRadius: "12px", textTransform: "uppercase", letterSpacing: "0.06em",
+                        }}>
+                          Today
+                        </span>
+                      </div>
+                      {messages.map((msg) => {
+                        const isMine = msg.sender_id === user.id;
+                        return (
+                          <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"} items-end gap-2`}>
+                            {!isMine && (
+                              active.partner.avatar_url ? (
+                                <img src={active.partner.avatar_url} alt="" width={28} height={28}
+                                  style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                              ) : (
+                                <div style={{
+                                  width: 28, height: 28, borderRadius: "50%",
+                                  background: "linear-gradient(135deg, #ede9fe 0%, #c4b5fd 100%)",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  fontSize: "0.5rem", fontWeight: 600, color: "#7c3aed", flexShrink: 0,
+                                }}>
+                                  {getInitials(active.partner.full_name)}
+                                </div>
+                              )
+                            )}
+                            <div>
+                              <div style={{
+                                maxWidth: 380,
+                                padding: "0.75rem 1rem",
+                                borderRadius: isMine ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                                background: isMine
+                                  ? "#f0edf6"
+                                  : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+                                color: isMine ? "#1a1a2e" : "#fff",
+                                fontSize: "0.875rem",
+                                lineHeight: 1.55,
+                              }}>
+                                {msg.content}
+                              </div>
+                              <div className="flex items-center gap-1" style={{
+                                marginTop: "0.2rem",
+                                justifyContent: isMine ? "flex-end" : "flex-start",
+                              }}>
+                                <span style={{ fontSize: "0.625rem", color: "#bbb" }}>
+                                  {formatMsgTime(msg.created_at)}
+                                </span>
+                                {isMine && !msg.id.startsWith("temp-") && (
+                                  msg.read_at ? (
+                                    <CheckCheck size={12} style={{ color: "#7c3aed" }} />
+                                  ) : (
+                                    <Check size={12} style={{ color: "#ccc" }} />
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+
+                  {/* Typing indicator */}
+                  {partnerTyping && (
+                    <div className="flex items-end gap-2">
+                      {active.partner.avatar_url ? (
+                        <img src={active.partner.avatar_url} alt="" width={28} height={28}
+                          style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                      ) : (
+                        <div style={{
+                          width: 28, height: 28, borderRadius: "50%",
+                          background: "linear-gradient(135deg, #ede9fe 0%, #c4b5fd 100%)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: "0.5rem", fontWeight: 600, color: "#7c3aed", flexShrink: 0,
+                        }}>
+                          {getInitials(active.partner.full_name)}
+                        </div>
+                      )}
+                      <div style={{
+                        padding: "0.75rem 1rem",
+                        borderRadius: "18px 18px 18px 4px",
+                        background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+                        display: "flex", alignItems: "center", gap: "3px",
+                      }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.6)", animation: "typingBounce 1.4s infinite ease-in-out", animationDelay: "0s" }} />
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.6)", animation: "typingBounce 1.4s infinite ease-in-out", animationDelay: "0.2s" }} />
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.6)", animation: "typingBounce 1.4s infinite ease-in-out", animationDelay: "0.4s" }} />
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Input */}
+                <div className="flex items-center gap-3 px-6 py-4" style={{ borderTop: "1px solid rgba(0,0,0,0.04)", flexShrink: 0, backgroundColor: "#fff" }}>
+                  <button style={{ background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: "4px", flexShrink: 0 }}>
+                    <Smile size={20} />
+                  </button>
+                  <input
+                    type="text"
+                    placeholder="Type a message..."
+                    value={input}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKey}
+                    style={{
+                      flex: 1, border: "1px solid rgba(0,0,0,0.06)", borderRadius: "24px",
+                      padding: "0.7rem 1.25rem", fontSize: "0.875rem",
+                      color: "#1a1a2e", outline: "none", backgroundColor: "#f7f7f9",
+                    }}
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={!input.trim()}
+                    className="transition-all duration-200"
+                    style={{
+                      width: 40, height: 40, borderRadius: "50%",
+                      background: input.trim() ? "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" : "#f0f0f0",
+                      color: input.trim() ? "#fff" : "#ccc",
+                      border: "none", cursor: input.trim() ? "pointer" : "default",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Send size={16} />
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -620,7 +706,7 @@ export default function MessagesPage() {
   return (
     <Suspense fallback={
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ fontSize: "0.875rem", color: "#aaa" }}>Loading…</p>
+        <p style={{ fontSize: "0.875rem", color: "#a1a1aa" }}>Loading…</p>
       </div>
     }>
       <MessagesContent />

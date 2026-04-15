@@ -4,142 +4,127 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { SupabaseProfile } from "@/data/profiles";
 
-function HeroFloatingCard({
-  name,
-  location,
-  avatar,
-  interests,
-  style,
-  animationName,
-}: {
-  name: string;
-  location: string;
-  avatar: string;
-  interests: string[];
-  style: React.CSSProperties;
-  animationName: string;
-}) {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        border: "1px solid rgba(255,255,255,0.25)",
-        borderRadius: "6px",
-        backgroundColor: "rgba(255,255,255,0.07)",
-        backdropFilter: "blur(8px)",
-        padding: "1.125rem",
-        animation: `${animationName} ${animationName === "float1" ? "6s" : animationName === "float2" ? "7s" : "8s"} ease-in-out infinite`,
-        ...style,
-      }}
-    >
-      <div className="flex items-center gap-3 mb-3">
-        <img
-          src={avatar}
-          alt={name}
-          width={36}
-          height={36}
-          style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }}
-        />
-        <div>
-          <p style={{ fontSize: "0.8125rem", fontWeight: 500, color: "#fff" }}>
-            {name}
-          </p>
-          <p style={{ fontSize: "0.6875rem", color: "rgba(255,255,255,0.5)" }}>
-            {location}
-          </p>
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-1">
-        {interests.slice(0, 2).map((interest) => (
-          <span
-            key={interest}
-            style={{
-              fontSize: "0.625rem",
-              padding: "0.15rem 0.45rem",
-              border: "1px solid rgba(255,255,255,0.3)",
-              borderRadius: "2px",
-              color: "rgba(255,255,255,0.7)",
-            }}
-          >
-            {interest}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const cardPositions = [
-  { animationName: "float1", style: { top: 0, left: 40, width: 200 } },
-  { animationName: "float2", style: { top: 120, right: 0, width: 210 } },
-  { animationName: "float3", style: { bottom: 20, left: 20, width: 195 } },
-] as const;
-
-function useRealProfiles() {
+function useRealProfiles(count = 3) {
   const [profiles, setProfiles] = useState<SupabaseProfile[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
 
     const fetchProfiles = async () => {
-      // Fetch all profiles, then randomly pick up to 3 client-side
       const { data } = await supabase
         .from("profiles")
         .select("id, full_name, avatar_url, cover_url, location, bio, interests");
 
       if (data && data.length > 0) {
-        // Shuffle and take up to 3
         const shuffled = [...data].sort(() => Math.random() - 0.5);
-        setProfiles(shuffled.slice(0, 3) as SupabaseProfile[]);
+        setProfiles(shuffled.slice(0, count) as SupabaseProfile[]);
       }
     };
 
     fetchProfiles();
-  }, []);
+  }, [count]);
 
   return profiles;
 }
 
-export function HeroCards() {
-  const profiles = useRealProfiles();
+export function HeroImage() {
+  const profiles = useRealProfiles(2);
 
-  if (profiles.length === 0) return null;
+  // Use first 2 profiles to show real faces
+  const avatars = profiles.map((p) => p.avatar_url).filter(Boolean);
 
   return (
     <div
       className="relative hidden lg:block"
-      style={{ width: 380, height: 440, flexShrink: 0 }}
+      style={{ width: 420, height: 460, flexShrink: 0 }}
     >
-      {profiles.map((p, i) => (
-        <HeroFloatingCard
-          key={p.id}
-          name={p.full_name || "Anonymous"}
-          location={p.location || "Unknown"}
-          avatar={p.avatar_url || ""}
-          interests={p.interests || []}
-          animationName={cardPositions[i].animationName}
-          style={cardPositions[i].style as React.CSSProperties}
-        />
-      ))}
+      {/* Main hero container with rounded corners */}
       <div
         style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: 8,
-          height: 8,
-          borderRadius: "50%",
-          backgroundColor: "rgba(255,255,255,0.4)",
-          animation: "pulse-dot 2s ease-in-out infinite",
+          width: "100%",
+          height: "100%",
+          borderRadius: "24px",
+          overflow: "hidden",
+          position: "relative",
+          boxShadow: "0 20px 60px rgba(124,58,237,0.12), 0 8px 24px rgba(0,0,0,0.06)",
         }}
-      />
+      >
+        {avatars.length > 0 ? (
+          <img
+            src={avatars[0]!}
+            alt="Companion"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              background: "linear-gradient(135deg, #ede9fe 0%, #c4b5fd 50%, #a78bfa 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <span style={{ fontSize: "3rem", opacity: 0.3 }}>✦</span>
+          </div>
+        )}
+
+        {/* Gradient overlay at bottom */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: "40%",
+            background: "linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 100%)",
+          }}
+        />
+      </div>
+
+      {/* Small floating card */}
+      {profiles.length > 1 && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: -20,
+            left: -30,
+            backgroundColor: "#fff",
+            borderRadius: "16px",
+            padding: "0.875rem 1.125rem",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+            animation: "float2 7s ease-in-out infinite",
+          }}
+        >
+          <img
+            src={profiles[1].avatar_url || ""}
+            alt={profiles[1].full_name || ""}
+            style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
+          />
+          <div>
+            <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#1a1a2e" }}>
+              {profiles[1].full_name || "User"}
+            </p>
+            <p style={{ fontSize: "0.6875rem", color: "#7c3aed", fontWeight: 500 }}>
+              {profiles[1].interests?.[0] || "Companion"}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 export function HeroMiniAvatars() {
-  const profiles = useRealProfiles();
+  const profiles = useRealProfiles(4);
 
   if (profiles.length === 0) return null;
 
@@ -151,22 +136,26 @@ export function HeroMiniAvatars() {
             key={p.id}
             src={p.avatar_url || ""}
             alt={p.full_name || "User"}
-            width={28}
-            height={28}
+            width={32}
+            height={32}
             style={{
-              width: 28,
-              height: 28,
+              width: 32,
+              height: 32,
               borderRadius: "50%",
               objectFit: "cover",
-              border: "2px solid #0a0a0a",
-              marginLeft: i === 0 ? 0 : -8,
+              border: "2px solid #fff",
+              marginLeft: i === 0 ? 0 : -10,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
             }}
           />
         ))}
       </div>
-      <p style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.45)" }}>
-        Join 200,000+ members who found their people
+      <p style={{ fontSize: "0.8125rem", color: "#71717a" }}>
+        Join <span style={{ fontWeight: 600, color: "#7c3aed" }}>200,000+</span> members who found their people
       </p>
     </div>
   );
 }
+
+// Keep re-export for backward compatibility
+export { HeroImage as HeroCards };
