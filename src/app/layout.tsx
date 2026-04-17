@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
-import { LayoutShell } from "@/components/ui/LayoutShell";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { NotificationProvider } from "@/components/providers/NotificationProvider";
 
@@ -43,7 +42,7 @@ export default function RootLayout({
       <body className="font-sans antialiased" suppressHydrationWarning>
         <AuthProvider>
           <NotificationProvider>
-            <LayoutShell>{children}</LayoutShell>
+            {children}
           </NotificationProvider>
         </AuthProvider>
       </body>
