@@ -374,7 +374,7 @@ export default function ExplorePage() {
                   background:"linear-gradient(135deg,#7c3aed 0%,#a855f7 100%)",
                   color:"#fff", fontSize:"0.8125rem", fontWeight:600,
                   border:"none", cursor:"pointer",
-                  boxShadow:"0 4px 16px rgba(124,58,237,0.3)", transition:"opacity 0.15s ease",
+                  transition:"opacity 0.15s ease",
                 }}
                 onMouseEnter={e => (e.currentTarget.style.opacity = "0.88")}
                 onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
@@ -468,10 +468,10 @@ export default function ExplorePage() {
                       style={{ width:66,height:66,borderRadius:"50%",
                         background:"linear-gradient(135deg,#7c3aed 0%,#a855f7 100%)",
                         border:"none",display:"flex",alignItems:"center",justifyContent:"center",
-                        cursor:"pointer",boxShadow:"0 8px 28px rgba(124,58,237,0.4)",
+                        cursor:"pointer",
                         transition:"all 0.2s ease",color:"#fff" }}
-                      onMouseEnter={e => { e.currentTarget.style.transform="scale(1.1)"; e.currentTarget.style.boxShadow="0 12px 36px rgba(124,58,237,0.5)"; }}
-                      onMouseLeave={e => { e.currentTarget.style.transform="scale(1)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(124,58,237,0.4)"; }}>
+                      onMouseEnter={e => { e.currentTarget.style.transform="scale(1.1)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform="scale(1)"; }}>
                       <Handshake size={26} />
                     </button>
                     <Link href={`/profile/${currentProfile.id}`} style={{ textDecoration:"none" }}>
