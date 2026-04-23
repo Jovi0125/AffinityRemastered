@@ -95,7 +95,7 @@ export default function ProfilePage() {
 
   const handleFollow = async () => {
     if (!user) {
-      router.push("/signin");
+      router.push("/");
       return;
     }
     setFollowLoading(true);
@@ -113,7 +113,7 @@ export default function ProfilePage() {
 
   const handleMessage = async () => {
     if (!user) {
-      router.push("/signin");
+      router.push("/");
       return;
     }
     const { data: existing } = await supabase
@@ -164,7 +164,7 @@ export default function ProfilePage() {
 
   return (
     <PageTransition>
-    <div style={{ backgroundColor: "#faf9fd", minHeight: "100vh" }}>
+    <div style={{ backgroundColor: "#faf9fd", minHeight: "100vh", paddingTop: "4rem" }}>
       {/* Cover */}
       <div style={{ height: 280, backgroundColor: "#1a1a2e", position: "relative", overflow: "hidden" }}>
         {profile.cover_url ? (
@@ -184,52 +184,37 @@ export default function ProfilePage() {
 
       {/* Profile header */}
       <div className="max-w-5xl mx-auto px-6 lg:px-8">
+        {/* Avatar + Actions row — sits in the cover overlap zone */}
         <div
-          className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"
-          style={{ marginTop: "-60px", marginBottom: "1.5rem", position: "relative", zIndex: 10 }}
+          className="flex flex-row items-end justify-between"
+          style={{ marginTop: "-60px", marginBottom: "0.875rem", position: "relative", zIndex: 10 }}
         >
-          <div className="flex items-end gap-4">
-            {/* Avatar */}
-            <div style={{ position: "relative" }}>
-              {profile.avatar_url ? (
-                <img
-                  src={profile.avatar_url}
-                  alt={name}
-                  style={{
-                    width: 110, height: 110, borderRadius: "50%", objectFit: "cover",
-                    border: "4px solid #faf9fd",
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 110, height: 110, borderRadius: "50%",
-                    background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "2.5rem", fontWeight: 600, color: "#fff",
-                    border: "4px solid #faf9fd",
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-                  }}
-                >
-                  {name.charAt(0).toUpperCase()}
-                </div>
-              )}
-            </div>
-
-            {/* Name + location (on cover overlap) */}
-            <div style={{ marginBottom: "0.5rem" }}>
-              <h1
-                className="font-display"
-                style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", letterSpacing: "-0.01em", textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
+          {/* Avatar */}
+          <div style={{ position: "relative" }}>
+            {profile.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={name}
+                style={{
+                  width: 110, height: 110, borderRadius: "50%", objectFit: "cover",
+                  border: "4px solid #faf9fd",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 110, height: 110, borderRadius: "50%",
+                  background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "2.5rem", fontWeight: 600, color: "#fff",
+                  border: "4px solid #faf9fd",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                }}
               >
-                {name}
-              </h1>
-              <div className="flex items-center gap-1.5">
-                <MapPin size={12} color="#c4b5fd" />
-                <span style={{ fontSize: "0.8125rem", color: "#c4b5fd" }}>{profile.location || "Unknown"}</span>
+                {name.charAt(0).toUpperCase()}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Actions */}
@@ -243,7 +228,7 @@ export default function ProfilePage() {
                 border: "1px solid rgba(0,0,0,0.08)", borderRadius: "12px", cursor: "pointer",
               }}
             >
-              Edit Profile
+              <MessageCircle size={14} /> Message
             </button>
             <button
               onClick={() => {}}
@@ -259,6 +244,21 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* Name + Location — fully in the white content area */}
+        <div style={{ marginBottom: "1.5rem" }}>
+          <h1
+            className="font-display"
+            style={{ fontSize: "1.75rem", fontWeight: 700, color: "#1a1a2e", letterSpacing: "-0.01em" }}
+          >
+            {name}
+          </h1>
+          <div className="flex items-center gap-1.5" style={{ marginTop: "0.25rem" }}>
+            <MapPin size={12} color="#7c3aed" />
+            <span style={{ fontSize: "0.8125rem", color: "#7c3aed" }}>{profile.location || "Unknown"}</span>
+          </div>
+        </div>
+
+
         {/* Stats row */}
         <div className="flex items-center gap-8 mb-8" style={{ paddingTop: "0.5rem" }}>
           <button onClick={() => setFollowModal("followers")} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "center" }}>
@@ -269,16 +269,12 @@ export default function ProfilePage() {
             <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#1a1a2e" }}>{formatCount(followingCount)}</p>
             <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Following</p>
           </button>
-          <div style={{ textAlign: "center" }}>
-            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#1a1a2e" }}>0</p>
-            <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Journals</p>
-          </div>
+
         </div>
 
-        {/* Two column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ paddingBottom: "3rem" }}>
-          {/* Left column */}
-          <div className="lg:col-span-1 flex flex-col gap-5">
+        {/* Profile info */}
+        <div style={{ paddingBottom: "3rem" }}>
+          <div className="flex flex-col gap-5">
             {/* About card */}
             <div style={{
               backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem",
@@ -388,65 +384,6 @@ export default function ProfilePage() {
               {blocked ? <ShieldOff size={13} /> : <Shield size={13} />}
               {blocked ? "Unblock" : "Block User"}
             </button>
-          </div>
-
-          {/* Right column — Companion Logbook */}
-          <div className="lg:col-span-2">
-            <div style={{
-              backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem",
-              boxShadow: "var(--shadow-sm)", minHeight: 300,
-            }}>
-              <div className="flex items-center justify-between mb-5">
-                <h2 style={{ fontSize: "1.375rem", fontWeight: 700, color: "#1a1a2e" }}>
-                  Companion Logbook
-                </h2>
-                <div className="flex items-center gap-4">
-                  <button style={{ fontSize: "0.8125rem", fontWeight: 500, color: "#7c3aed", background: "none", border: "none", cursor: "pointer" }}>
-                    All Entries
-                  </button>
-                  <button style={{ fontSize: "0.8125rem", fontWeight: 500, color: "#a1a1aa", background: "none", border: "none", cursor: "pointer" }}>
-                    Favorites
-                  </button>
-                </div>
-              </div>
-
-              {/* Empty logbook state */}
-              <div
-                style={{
-                  background: "linear-gradient(135deg, #1a1a2e 0%, #312e81 100%)",
-                  borderRadius: "16px",
-                  padding: "3rem 2rem",
-                  textAlign: "center",
-                  marginBottom: "1rem",
-                }}
-              >
-                <p style={{ fontSize: "1.125rem", fontWeight: 600, color: "#fff", marginBottom: "0.5rem" }}>
-                  No journal entries yet
-                </p>
-                <p style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.6)" }}>
-                  {name.split(" ")[0]}&apos;s companion stories will appear here.
-                </p>
-              </div>
-
-              {/* Shared interests match */}
-              {(() => {
-                const shared = (profile.interests || []).filter((i) => myProfile?.interests?.includes(i));
-                if (shared.length === 0 || !user) return null;
-                return (
-                  <div style={{
-                    padding: "1rem 1.25rem", borderRadius: "14px",
-                    backgroundColor: "#f5f3ff", border: "1px solid #ede9fe",
-                  }}>
-                    <p style={{ fontSize: "0.6875rem", fontWeight: 700, letterSpacing: "0.08em", color: "#7c3aed", textTransform: "uppercase", marginBottom: "0.375rem" }}>
-                      {Math.round((shared.length / new Set([...(myProfile?.interests || []), ...(profile.interests || [])]).size) * 100)}% Affinity Match
-                    </p>
-                    <p style={{ fontSize: "0.8125rem", color: "#555" }}>
-                      You both share: {shared.join(", ")}
-                    </p>
-                  </div>
-                );
-              })()}
-            </div>
           </div>
         </div>
 

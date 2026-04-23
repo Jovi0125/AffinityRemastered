@@ -104,11 +104,22 @@ export function HeroImage() {
             animation: "float2 7s ease-in-out infinite",
           }}
         >
-          <img
-            src={profiles[1].avatar_url || ""}
-            alt={profiles[1].full_name || ""}
-            style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
-          />
+          {profiles[1].avatar_url ? (
+            <img
+              src={profiles[1].avatar_url}
+              alt={profiles[1].full_name || ""}
+              style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
+            />
+          ) : (
+            <div style={{
+              width: 40, height: 40, borderRadius: "50%",
+              background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "0.875rem", fontWeight: 600, color: "#fff",
+            }}>
+              {(profiles[1].full_name || "U").charAt(0).toUpperCase()}
+            </div>
+          )}
           <div>
             <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#1a1a2e" }}>
               {profiles[1].full_name || "User"}
@@ -131,24 +142,43 @@ export function HeroMiniAvatars() {
   return (
     <div className="flex items-center gap-4 mt-10">
       <div className="flex" style={{ marginRight: "0.5rem" }}>
-        {profiles.map((p, i) => (
-          <img
-            key={p.id}
-            src={p.avatar_url || ""}
-            alt={p.full_name || "User"}
-            width={32}
-            height={32}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              objectFit: "cover",
-              border: "2px solid #fff",
-              marginLeft: i === 0 ? 0 : -10,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          />
-        ))}
+        {profiles.map((p, i) =>
+          p.avatar_url ? (
+            <img
+              key={p.id}
+              src={p.avatar_url}
+              alt={p.full_name || "User"}
+              width={32}
+              height={32}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                objectFit: "cover",
+                border: "2px solid #fff",
+                marginLeft: i === 0 ? 0 : -10,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            />
+          ) : (
+            <div
+              key={p.id}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "0.6875rem", fontWeight: 600, color: "#fff",
+                border: "2px solid #fff",
+                marginLeft: i === 0 ? 0 : -10,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              {(p.full_name || "U").charAt(0).toUpperCase()}
+            </div>
+          )
+        )}
       </div>
       <p style={{ fontSize: "0.8125rem", color: "#71717a" }}>
         Join <span style={{ fontWeight: 600, color: "#7c3aed" }}>200,000+</span> members who found their people

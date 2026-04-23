@@ -3,14 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, LogOut, User, MessageCircle, Bell, Search } from "lucide-react";
+import { Menu, X, LogOut, User, MessageCircle, Bell, Compass } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useNotifications } from "@/components/providers/NotificationProvider";
 
 const navLinks = [
-  { label: "Discover", href: "/explore" },
-  { label: "Communities", href: "/#communities" },
-  { label: "Messages", href: "/messages" },
+  { label: "Discover", href: "/explore", icon: Compass },
+  { label: "Messages", href: "/messages", icon: MessageCircle },
 ];
 
 export function Navbar() {
@@ -125,23 +124,40 @@ export function Navbar() {
           {navLinks.map((item) => {
             if (item.label === "Messages" && !isLoggedIn) return null;
             const active = isActive(item.href);
+            const Icon = item.icon;
             return (
               <Link
                 key={item.label}
                 href={item.href}
-                className="transition-colors"
-                style={{
-                  fontSize: "0.875rem",
-                  fontWeight: active ? 500 : 400,
-                  color: active ? "#7c3aed" : "#555",
-                  padding: "0.5rem 1rem",
-                  borderRadius: "8px",
-                  textDecoration: "none",
-                  borderBottom: active ? "2px solid #7c3aed" : "2px solid transparent",
-                  paddingBottom: "0.35rem",
-                }}
+                style={{ textDecoration: "none", marginLeft: item.label === "Messages" ? "1.5rem" : 0 }}
               >
-                {item.label}
+                <div
+                  className="flex items-center gap-1.5 transition-all duration-200"
+                  style={{
+                    fontSize: "0.8125rem",
+                    fontWeight: active ? 600 : 400,
+                    color: active ? "#7c3aed" : "#666",
+                    padding: "0.45rem 0.875rem",
+                    borderRadius: "10px",
+                    backgroundColor: active ? "#f0ebff" : "transparent",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.backgroundColor = "#f8f6ff";
+                      e.currentTarget.style.color = "#7c3aed";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.color = "#666";
+                    }
+                  }}
+                >
+                  <Icon size={15} strokeWidth={active ? 2.2 : 1.8} />
+                  <span>{item.label}</span>
+                </div>
               </Link>
             );
           })}
@@ -427,7 +443,7 @@ export function Navbar() {
           ) : (
             /* Logged out CTA */
             <button
-              onClick={() => router.push("/signin")}
+              onClick={() => router.push("/")}
               className="transition-all duration-200 hover:shadow-lg"
               style={{
                 fontSize: "0.8125rem",
@@ -465,17 +481,20 @@ export function Navbar() {
           {navLinks.map((item) => {
             if (item.label === "Messages" && !isLoggedIn) return null;
             const active = isActive(item.href);
+            const Icon = item.icon;
             return (
               <Link
                 key={item.label}
                 href={item.href}
+                className="flex items-center gap-2"
                 style={{
                   fontSize: "1rem",
                   color: active ? "#7c3aed" : "#1a1a2e",
-                  fontWeight: active ? 500 : 400,
+                  fontWeight: active ? 600 : 400,
                   textDecoration: "none",
                 }}
               >
+                <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
                 {item.label}
               </Link>
             );
@@ -507,7 +526,7 @@ export function Navbar() {
             </>
           ) : (
             <button
-              onClick={() => router.push("/signin")}
+              onClick={() => router.push("/")}
               style={{
                 fontSize: "0.8125rem",
                 fontWeight: 600,

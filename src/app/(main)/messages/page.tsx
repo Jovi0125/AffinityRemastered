@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
-import { ArrowLeft, Search, Send, MoreHorizontal, Check, CheckCheck, Video, Phone, Smile } from "lucide-react";
+import { ArrowLeft, Search, Send, MoreHorizontal, Check, CheckCheck, Video, Phone, Smile, MessageCircle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -60,7 +60,7 @@ function MessagesContent() {
   // Redirect if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push("/signin");
+      router.push("/");
     }
   }, [authLoading, user, router]);
 
@@ -499,7 +499,9 @@ function MessagesContent() {
             {!active ? (
               <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <div style={{ textAlign: "center" }}>
-                  <p style={{ fontSize: "1.25rem", fontWeight: 600, color: "#c4b5fd", marginBottom: "0.5rem" }}>💬</p>
+                  <div style={{ width:48,height:48,borderRadius:"50%",background:"linear-gradient(135deg,#ede9fe,#c4b5fd)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 0.75rem" }}>
+                    <MessageCircle size={22} color="#7c3aed" />
+                  </div>
                   <p style={{ fontSize: "0.9375rem", color: "#a1a1aa" }}>Select a conversation to start messaging.</p>
                 </div>
               </div>
@@ -558,7 +560,7 @@ function MessagesContent() {
                   {messages.length === 0 ? (
                     <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <p style={{ fontSize: "0.875rem", color: "#c4b5fd", fontStyle: "italic" }}>
-                        Say hello to {active.partner.full_name?.split(" ")[0] || "them"}! 👋
+                        Say hello to {active.partner.full_name?.split(" ")[0] || "them"}!
                       </p>
                     </div>
                   ) : (

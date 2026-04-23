@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Edit3, Check, X, Plus, Camera, ImagePlus, Share2 } from "lucide-react";
+import { MapPin, Edit3, Check, X, Plus, Camera, ImagePlus, Share2, ChevronDown } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { InterestTag } from "@/components/ui/InterestTag";
@@ -10,6 +10,25 @@ import { FollowListModal } from "@/components/ui/FollowListModal";
 import { PageTransition } from "@/components/ui/PageTransition";
 
 import { allInterests, availabilityOptions } from "@/data/profiles";
+
+const COUNTRIES = [
+  "Afghanistan", "Albania", "Algeria", "Argentina", "Armenia", "Australia", "Austria",
+  "Azerbaijan", "Bahrain", "Bangladesh", "Belarus", "Belgium", "Bolivia", "Bosnia and Herzegovina",
+  "Brazil", "Bulgaria", "Cambodia", "Cameroon", "Canada", "Chile", "China", "Colombia",
+  "Costa Rica", "Croatia", "Cuba", "Czech Republic", "Denmark", "Dominican Republic",
+  "Ecuador", "Egypt", "El Salvador", "Ethiopia", "Finland", "France", "Georgia", "Germany",
+  "Ghana", "Greece", "Guatemala", "Honduras", "Hong Kong", "Hungary", "India", "Indonesia",
+  "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan",
+  "Kenya", "Kuwait", "Latvia", "Lebanon", "Libya", "Lithuania", "Luxembourg", "Malaysia",
+  "Mexico", "Moldova", "Mongolia", "Morocco", "Myanmar", "Nepal", "Netherlands",
+  "New Zealand", "Nicaragua", "Nigeria", "North Korea", "Norway", "Oman", "Pakistan",
+  "Palestine", "Panama", "Paraguay", "Peru", "Philippines", "Poland", "Portugal",
+  "Qatar", "Romania", "Russia", "Saudi Arabia", "Senegal", "Serbia", "Singapore",
+  "Slovakia", "Slovenia", "South Africa", "South Korea", "Spain", "Sri Lanka", "Sudan",
+  "Sweden", "Switzerland", "Syria", "Taiwan", "Tanzania", "Thailand", "Tunisia",
+  "Turkey", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States",
+  "Uruguay", "Uzbekistan", "Venezuela", "Vietnam", "Yemen", "Zimbabwe",
+];
 
 export default function MyProfilePage() {
   const router = useRouter();
@@ -40,7 +59,7 @@ export default function MyProfilePage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/signin");
+      router.push("/");
     }
   }, [loading, user, router]);
 
@@ -243,94 +262,57 @@ export default function MyProfilePage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 lg:px-8">
-        {/* Header */}
+        {/* Avatar + Actions row — sits in the cover overlap zone */}
         <div
-          className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"
-          style={{ marginTop: "-60px", marginBottom: "1.5rem", position: "relative", zIndex: 10 }}
+          className="flex flex-row items-end justify-between"
+          style={{ marginTop: "-60px", marginBottom: "0.875rem", position: "relative", zIndex: 10 }}
         >
-          <div className="flex items-end gap-4">
-            {/* Avatar */}
-            <div style={{ position: "relative" }}>
-              {currentAvatar ? (
-                <img
-                  src={currentAvatar}
-                  alt={displayName}
-                  style={{
-                    width: 110, height: 110, borderRadius: "50%", objectFit: "cover",
-                    border: "4px solid #faf9fd",
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-                    cursor: editing ? "pointer" : "default",
-                  }}
-                  onClick={() => editing && avatarInputRef.current?.click()}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 110, height: 110, borderRadius: "50%",
-                    background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "2.5rem", fontWeight: 600, color: "#fff",
-                    border: "4px solid #faf9fd",
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-                    cursor: editing ? "pointer" : "default",
-                  }}
-                  onClick={() => editing && avatarInputRef.current?.click()}
-                >
-                  {initials}
-                </div>
-              )}
-
-              {editing && (
-                <button
-                  onClick={() => avatarInputRef.current?.click()}
-                  style={{
-                    position: "absolute", bottom: 2, right: 2,
-                    width: 32, height: 32, borderRadius: "50%",
-                    background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
-                    color: "#fff", border: "2px solid #faf9fd",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    cursor: "pointer",
-                  }}
-                >
-                  <Camera size={14} />
-                </button>
-              )}
-            </div>
-
-            {/* Name + location */}
-            <div style={{ marginBottom: "0.5rem" }}>
-              {editing ? (
-                <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Your name"
-                  className="font-display"
-                  style={{
-                    fontSize: "1.75rem", fontWeight: 700, color: "#fff",
-                    letterSpacing: "-0.01em", width: "100%",
-                    border: "none", borderBottom: "2px solid rgba(255,255,255,0.3)",
-                    outline: "none", padding: "0.15rem 0", backgroundColor: "transparent",
-                    textShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                  }}
-                />
-              ) : (
-                <h1
-                  className="font-display"
-                  style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff", letterSpacing: "-0.01em", textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
-                >
-                  {displayName}
-                </h1>
-              )}
-              <div className="flex items-center gap-1.5">
-                <MapPin size={12} color="#c4b5fd" />
-                {editing ? (
-                  <input type="text" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} placeholder="Your location"
-                    style={{ fontSize: "0.8125rem", color: "#c4b5fd", border: "none", borderBottom: "1px solid rgba(255,255,255,0.2)", outline: "none", padding: "0.1rem 0", backgroundColor: "transparent" }}
-                  />
-                ) : (
-                  <span style={{ fontSize: "0.8125rem", color: "#c4b5fd" }}>
-                    {profile?.location || "Add your location"}
-                  </span>
-                )}
+          {/* Avatar */}
+          <div style={{ position: "relative" }}>
+            {currentAvatar ? (
+              <img
+                src={currentAvatar}
+                alt={displayName}
+                style={{
+                  width: 110, height: 110, borderRadius: "50%", objectFit: "cover",
+                  border: "4px solid #faf9fd",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                  cursor: editing ? "pointer" : "default",
+                }}
+                onClick={() => editing && avatarInputRef.current?.click()}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 110, height: 110, borderRadius: "50%",
+                  background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "2.5rem", fontWeight: 600, color: "#fff",
+                  border: "4px solid #faf9fd",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                  cursor: editing ? "pointer" : "default",
+                }}
+                onClick={() => editing && avatarInputRef.current?.click()}
+              >
+                {initials}
               </div>
-            </div>
+            )}
+
+            {editing && (
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                style={{
+                  position: "absolute", bottom: 2, right: 2,
+                  width: 32, height: 32, borderRadius: "50%",
+                  background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+                  color: "#fff", border: "2px solid #faf9fd",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <Camera size={14} />
+              </button>
+            )}
           </div>
 
           {/* Action buttons */}
@@ -375,6 +357,57 @@ export default function MyProfilePage() {
                   <Check size={13} /> {saving ? (uploading ? "Uploading…" : "Saving…") : "Save"}
                 </button>
               </>
+            )}
+          </div>
+        </div>
+
+        {/* Name + Location — fully in the white content area */}
+        <div style={{ marginBottom: "1.5rem" }}>
+          {editing ? (
+            <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Your name"
+              className="font-sans"
+              style={{
+                fontSize: "1.75rem", fontWeight: 700, color: "#1a1a2e",
+                letterSpacing: "-0.03em", width: "100%",
+                border: "none", borderBottom: "2px solid #ede9fe",
+                outline: "none", padding: "0.15rem 0", backgroundColor: "transparent",
+              }}
+            />
+          ) : (
+            <h1
+              className="font-sans"
+              style={{ fontSize: "1.75rem", fontWeight: 700, color: "#1a1a2e", letterSpacing: "-0.03em" }}
+            >
+              {displayName}
+            </h1>
+          )}
+          <div className="flex items-center gap-1.5" style={{ marginTop: "0.25rem" }}>
+            <MapPin size={12} color="#7c3aed" />
+            {editing ? (
+              <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+                <select
+                  value={editLocation}
+                  onChange={(e) => setEditLocation(e.target.value)}
+                  style={{
+                    fontSize: "0.8125rem", color: editLocation ? "#7c3aed" : "#a1a1aa",
+                    border: "none", borderBottom: "1px solid #ede9fe",
+                    outline: "none", padding: "0.1rem 1.25rem 0.1rem 0",
+                    backgroundColor: "transparent", cursor: "pointer",
+                    appearance: "none", WebkitAppearance: "none",
+                    minWidth: 160,
+                  }}
+                >
+                  <option value="">Select your country…</option>
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <ChevronDown size={12} color="#7c3aed" style={{ position: "absolute", right: 0, pointerEvents: "none" }} />
+              </div>
+            ) : (
+              <span style={{ fontSize: "0.8125rem", color: "#7c3aed" }}>
+                {profile?.location || "Add your location"}
+              </span>
             )}
           </div>
         </div>

@@ -36,7 +36,7 @@ export default function SignUpPage() {
 
     try {
       const supabase = createClient();
-      const { error: authError } = await supabase.auth.signUp({
+      const { data: signUpData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -45,11 +45,50 @@ export default function SignUpPage() {
       });
 
       if (authError) {
-        setError(authError.message);
+        const msg = authError.message.toLowerCase();
+        if (msg.includes("rate limit") || msg.includes("rate_limit")) {
+          // Rate limit — try signing in directly (account may already exist)
+          const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+          if (!signInError) {
+            router.push("/explore");
+            router.refresh();
+            return;
+          }
+          setError("Account created but email service is busy. Please try signing in.");
+        } else if (msg.includes("not authorized") || msg.includes("invalid") && msg.includes("email")) {
+          setError("Please use a valid email address (e.g. @gmail.com, @outlook.com, etc.).");
+        } else if (msg.includes("already registered") || msg.includes("already been registered")) {
+          setError("This email is already registered. Try signing in instead.");
+        } else {
+          setError(authError.message);
+        }
         setLoading(false);
         return;
       }
 
+      // If identities is empty, email is already registered
+      if (signUpData?.user?.identities?.length === 0) {
+        setError("This email is already registered. Try signing in instead.");
+        setLoading(false);
+        return;
+      }
+
+      // If user session exists (email confirmation disabled), redirect directly
+      if (signUpData?.session) {
+        router.push("/explore");
+        router.refresh();
+        return;
+      }
+
+      // Fallback: auto sign-in after signup
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (!signInError) {
+        router.push("/explore");
+        router.refresh();
+        return;
+      }
+
+      // If auto sign-in fails (email confirmation still enabled), show check email page
       setSuccess(true);
     } catch {
       setError("Something went wrong. Please try again.");
@@ -113,7 +152,7 @@ export default function SignUpPage() {
             Click the link to activate your account.
           </p>
           <Link
-            href="/signin"
+            href="/"
             className="inline-flex items-center gap-2 transition-all duration-200 hover:shadow-lg"
             style={{
               fontSize: "0.875rem", fontWeight: 600, padding: "0.875rem 2rem",
@@ -331,7 +370,7 @@ export default function SignUpPage() {
           <p className="text-center mt-8" style={{ fontSize: "0.875rem", color: "#a1a1aa" }}>
             Already have an account?{" "}
             <Link
-              href="/signin"
+              href="/"
               className="transition-opacity hover:opacity-70"
               style={{ color: "#7c3aed", fontWeight: 600, textDecoration: "none" }}
             >

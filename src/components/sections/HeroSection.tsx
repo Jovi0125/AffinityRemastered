@@ -189,18 +189,18 @@ export function HeroSection() {
             </div>
 
             <h1
-              className="font-display"
+              className="font-sans"
               style={{
                 fontSize: "clamp(2.75rem, 5vw, 4.25rem)",
                 fontWeight: 700,
                 color: "#1a1a2e",
                 lineHeight: 1.1,
-                letterSpacing: "-0.02em",
+                letterSpacing: "-0.03em",
                 marginBottom: "1.5rem",
               }}
             >
               Find Your{" "}
-              <span style={{ color: "#7c3aed", fontStyle: "italic" }}>
+              <span style={{ color: "#7c3aed" }}>
                 Kindred
               </span>
               <br />
