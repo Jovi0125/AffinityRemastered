@@ -94,7 +94,7 @@ function SwipeCard({ profile, affinityScore, onPass, onConnect, exitDir }: Swipe
         boxShadow: drag.dragging ? "0 28px 70px rgba(0,0,0,0.22)" : "0 20px 60px rgba(0,0,0,0.14)",
         width: "100%", maxWidth: 380,
         cursor: drag.dragging ? "grabbing" : "grab", userSelect: "none",
-        transform: `translate(${tx}px, ${drag.dy ?? 0}px) rotate(${rotate}deg)`,
+        transform: `translate(${tx}px, 0px) rotate(${rotate}deg)`,
         transition, opacity, position: "relative",
       }}
     >

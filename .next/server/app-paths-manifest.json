@@ -2,6 +2,5 @@
   "/(main)/page": "app/(main)/page.js",
   "/(auth)/signup/page": "app/(auth)/signup/page.js",
   "/(main)/explore/page": "app/(main)/explore/page.js",
-  "/(main)/me/page": "app/(main)/me/page.js",
-  "/(main)/messages/page": "app/(main)/messages/page.js"
+  "/(main)/me/page": "app/(main)/me/page.js"
 }
