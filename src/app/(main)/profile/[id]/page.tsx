@@ -14,12 +14,15 @@ import { createClient } from "@/lib/supabase/client";
 import { useBlocks } from "@/hooks/useBlocks";
 import { useAffinityScore } from "@/hooks/useAffinityScore";
 import type { SupabaseProfile } from "@/data/profiles";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 export default function ProfilePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user, profile: myProfile } = useAuth();
   const { isBlocked, blockUser, unblockUser } = useBlocks();
+  const { theme } = useTheme();
+  const dk = theme === "dark";
   const [profile, setProfile] = useState<(SupabaseProfile & { last_seen_at?: string }) | null>(null);
   const [suggestions, setSuggestions] = useState<SupabaseProfile[]>([]);
   const [following, setFollowing] = useState(false);
@@ -164,7 +167,7 @@ export default function ProfilePage() {
 
   return (
     <PageTransition>
-    <div style={{ backgroundColor: "#faf9fd", minHeight: "100vh", paddingTop: "4rem" }}>
+    <div style={{ backgroundColor: dk ? "#000" : "#faf9fd", minHeight: "100vh", paddingTop: "4rem" }}>
       {/* Cover */}
       <div style={{ height: 280, backgroundColor: "#1a1a2e", position: "relative", overflow: "hidden" }}>
         {profile.cover_url ? (
@@ -197,7 +200,7 @@ export default function ProfilePage() {
                 alt={name}
                 style={{
                   width: 110, height: 110, borderRadius: "50%", objectFit: "cover",
-                  border: "4px solid #faf9fd",
+                  border: dk ? "4px solid #000" : "4px solid #faf9fd",
                   boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
                 }}
               />
@@ -208,7 +211,7 @@ export default function ProfilePage() {
                   background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: "2.5rem", fontWeight: 600, color: "#fff",
-                  border: "4px solid #faf9fd",
+                  border: dk ? "4px solid #000" : "4px solid #faf9fd",
                   boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
                 }}
               >
@@ -224,8 +227,8 @@ export default function ProfilePage() {
               className="flex items-center gap-2 transition-all duration-200 hover:shadow-md"
               style={{
                 fontSize: "0.8125rem", fontWeight: 600, padding: "0.6rem 1.25rem",
-                backgroundColor: "#fff", color: "#1a1a2e",
-                border: "1px solid rgba(0,0,0,0.08)", borderRadius: "12px", cursor: "pointer",
+                backgroundColor: dk ? "#16181c" : "#fff", color: dk ? "#e7e9ea" : "#1a1a2e",
+                border: `1px solid ${dk ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}`, borderRadius: "12px", cursor: "pointer",
               }}
             >
               <MessageCircle size={14} /> Message
@@ -235,8 +238,8 @@ export default function ProfilePage() {
               className="flex items-center justify-center transition-all duration-200 hover:shadow-md"
               style={{
                 width: 38, height: 38, borderRadius: "12px",
-                backgroundColor: "#fff", border: "1px solid rgba(0,0,0,0.08)",
-                cursor: "pointer", color: "#555",
+                backgroundColor: dk ? "#16181c" : "#fff", border: `1px solid ${dk ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}`,
+                cursor: "pointer", color: dk ? "#71767b" : "#555",
               }}
             >
               <Share2 size={16} />
@@ -248,7 +251,7 @@ export default function ProfilePage() {
         <div style={{ marginBottom: "1.5rem" }}>
           <h1
             className="font-display"
-            style={{ fontSize: "1.75rem", fontWeight: 700, color: "#1a1a2e", letterSpacing: "-0.01em" }}
+            style={{ fontSize: "1.75rem", fontWeight: 700, color: dk ? "#e7e9ea" : "#1a1a2e", letterSpacing: "-0.01em" }}
           >
             {name}
           </h1>
@@ -262,11 +265,11 @@ export default function ProfilePage() {
         {/* Stats row */}
         <div className="flex items-center gap-8 mb-8" style={{ paddingTop: "0.5rem" }}>
           <button onClick={() => setFollowModal("followers")} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "center" }}>
-            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#1a1a2e" }}>{formatCount(followerCount)}</p>
+            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: dk ? "#e7e9ea" : "#1a1a2e" }}>{formatCount(followerCount)}</p>
             <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Followers</p>
           </button>
           <button onClick={() => setFollowModal("following")} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "center" }}>
-            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#1a1a2e" }}>{formatCount(followingCount)}</p>
+            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: dk ? "#e7e9ea" : "#1a1a2e" }}>{formatCount(followingCount)}</p>
             <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Following</p>
           </button>
 
@@ -277,7 +280,7 @@ export default function ProfilePage() {
           <div className="flex flex-col gap-5">
             {/* About card */}
             <div style={{
-              backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem",
+              backgroundColor: dk ? "#16181c" : "#fff", borderRadius: "20px", padding: "1.5rem",
               boxShadow: "var(--shadow-sm)",
             }}>
               <p style={{
@@ -286,14 +289,14 @@ export default function ProfilePage() {
               }}>
                 About
               </p>
-              <p style={{ fontSize: "0.9375rem", color: "#555", lineHeight: 1.7 }}>
+              <p style={{ fontSize: "0.9375rem", color: dk ? "#a0a0a0" : "#555", lineHeight: 1.7 }}>
                 {profile.bio || "No bio yet."}
               </p>
             </div>
 
             {/* Interests card */}
             <div style={{
-              backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem",
+              backgroundColor: dk ? "#16181c" : "#fff", borderRadius: "20px", padding: "1.5rem",
               boxShadow: "var(--shadow-sm)",
             }}>
               <p style={{
@@ -322,7 +325,7 @@ export default function ProfilePage() {
             {/* Availability card */}
             {profile.availability && (
               <div style={{
-                backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem",
+                backgroundColor: dk ? "#16181c" : "#fff", borderRadius: "20px", padding: "1.5rem",
                 boxShadow: "var(--shadow-sm)",
               }}>
                 <p style={{
@@ -333,7 +336,7 @@ export default function ProfilePage() {
                 </p>
                 <div className="flex items-center gap-2">
                   <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#22c55e" }} />
-                  <span style={{ fontSize: "0.875rem", color: "#555" }}>{profile.availability}</span>
+                  <span style={{ fontSize: "0.875rem", color: dk ? "#a0a0a0" : "#555" }}>{profile.availability}</span>
                 </div>
               </div>
             )}
@@ -346,7 +349,7 @@ export default function ProfilePage() {
                 className="flex-1 flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-md"
                 style={{
                   fontSize: "0.8125rem", fontWeight: 600, padding: "0.7rem 1rem",
-                  background: following ? "#fff" : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+                  background: following ? (dk ? "#16181c" : "#fff") : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
                   color: following ? "#7c3aed" : "#fff",
                   border: following ? "1.5px solid #7c3aed" : "none",
                   borderRadius: "14px", cursor: followLoading ? "not-allowed" : "pointer",
@@ -361,8 +364,8 @@ export default function ProfilePage() {
                 className="flex-1 flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-md"
                 style={{
                   fontSize: "0.8125rem", fontWeight: 600, padding: "0.7rem 1rem",
-                  backgroundColor: "#fff", color: "#1a1a2e",
-                  border: "1.5px solid rgba(0,0,0,0.08)", borderRadius: "14px", cursor: "pointer",
+                  backgroundColor: dk ? "#16181c" : "#fff", color: dk ? "#e7e9ea" : "#1a1a2e",
+                  border: dk ? "1.5px solid rgba(255,255,255,0.1)" : "1.5px solid rgba(0,0,0,0.08)", borderRadius: "14px", cursor: "pointer",
                 }}
               >
                 <MessageCircle size={14} /> Message

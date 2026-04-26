@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { X, MapPin, Calendar, Tag, Handshake, UserRound, ChevronDown, MessageCircle } from "lucide-react";
+import { X, MapPin, Calendar, Tag, Handshake, UserRound, ChevronDown, MessageCircle, Heart, Sparkles, Clock, Zap } from "lucide-react";
 import { PageTransition } from "@/components/ui/PageTransition";
 import type { SupabaseProfile } from "@/data/profiles";
 import { allInterests, availabilityOptions } from "@/data/profiles";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useBlocks } from "@/hooks/useBlocks";
+import { useTheme } from "@/components/providers/ThemeProvider";
 import { calculateAffinityScore } from "@/hooks/useAffinityScore";
 import { useConnections } from "@/hooks/useConnections";
 import { useRouter } from "next/navigation";
@@ -45,6 +46,8 @@ interface SwipeCardProps {
 function SwipeCard({ profile, affinityScore, onPass, onConnect, exitDir }: SwipeCardProps) {
   const name = profile.full_name || "Companion";
   const interests = profile.interests || [];
+  const { theme } = useTheme();
+  const dk = theme === "dark";
   const dragRef = useRef({ dragging: false, startX: 0, dx: 0 });
   const [drag, setDrag] = useState({ dx: 0, dragging: false });
 
@@ -90,8 +93,8 @@ function SwipeCard({ profile, affinityScore, onPass, onConnect, exitDir }: Swipe
     <div
       onMouseDown={onMouseDown}
       style={{
-        borderRadius: 24, overflow: "hidden", backgroundColor: "#fff",
-        boxShadow: drag.dragging ? "0 28px 70px rgba(0,0,0,0.22)" : "0 20px 60px rgba(0,0,0,0.14)",
+        borderRadius: 24, overflow: "hidden", backgroundColor: dk ? "#16181c" : "#fff",
+        boxShadow: drag.dragging ? (dk ? "0 28px 70px rgba(0,0,0,0.5)" : "0 28px 70px rgba(0,0,0,0.22)") : (dk ? "0 20px 60px rgba(0,0,0,0.4)" : "0 20px 60px rgba(0,0,0,0.14)"),
         width: "100%", maxWidth: 380,
         cursor: drag.dragging ? "grabbing" : "grab", userSelect: "none",
         transform: `translate(${tx}px, 0px) rotate(${rotate}deg)`,
@@ -135,7 +138,7 @@ function SwipeCard({ profile, affinityScore, onPass, onConnect, exitDir }: Swipe
       </div>
 
       <div style={{ padding:"1.375rem 1.5rem 1.5rem" }}>
-        <h2 className="font-display" style={{ fontSize:"1.5rem",fontWeight:700,color:"#1a1a2e",marginBottom:"0.5rem",letterSpacing:"-0.02em" }}>
+        <h2 className="font-display" style={{ fontSize:"1.5rem",fontWeight:700,color: dk ? "#e7e9ea" : "#1a1a2e",marginBottom:"0.5rem",letterSpacing:"-0.02em" }}>
           {name}
         </h2>
         {profile.bio && (
@@ -146,8 +149,8 @@ function SwipeCard({ profile, affinityScore, onPass, onConnect, exitDir }: Swipe
         )}
         <div style={{ display:"flex",flexWrap:"wrap",gap:8 }}>
           {interests.slice(0,3).map((interest) => (
-            <span key={interest} style={{ fontSize:"0.75rem",fontWeight:500,color:"#555",
-              padding:"0.3rem 0.75rem",borderRadius:20,backgroundColor:"#f5f3ff",border:"1px solid #ede9fe" }}>
+            <span key={interest} style={{ fontSize:"0.75rem",fontWeight:500,color: dk ? "#a855f7" : "#555",
+              padding:"0.3rem 0.75rem",borderRadius:20,backgroundColor: dk ? "rgba(168,85,247,0.12)" : "#f5f3ff",border: dk ? "1px solid rgba(168,85,247,0.2)" : "1px solid #ede9fe" }}>
               {interest}
             </span>
           ))}
@@ -162,23 +165,25 @@ function FilterSection({ icon, label, active, children }: {
   icon: React.ReactNode; label: string; active: boolean; children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const { theme } = useTheme();
+  const dk = theme === "dark";
   return (
     <div style={{ marginBottom: 4 }}>
       <button onClick={() => setOpen(v => !v)} style={{
         display:"flex",alignItems:"center",gap:10,width:"100%",
-        background: active ? "#f5f3ff" : "none", border:"none", cursor:"pointer",
+        background: active ? (dk ? "rgba(168,85,247,0.12)" : "#f5f3ff") : "none", border:"none", cursor:"pointer",
         padding:"0.625rem 0.75rem", borderRadius:10, transition:"background 0.15s ease",
         justifyContent:"space-between",
       }}>
         <div style={{ display:"flex",alignItems:"center",gap:10 }}>
           {icon}
-          <span style={{ fontSize:"0.8125rem",fontWeight: active ? 600 : 400, color: active ? "#7c3aed" : "#555" }}>{label}</span>
+          <span style={{ fontSize:"0.8125rem",fontWeight: active ? 600 : 400, color: active ? "#7c3aed" : (dk ? "#e7e9ea" : "#555") }}>{label}</span>
           {active && <span style={{ width:6,height:6,borderRadius:"50%",backgroundColor:"#7c3aed",flexShrink:0 }} />}
         </div>
         <ChevronDown size={13} color="#a1a1aa" style={{ transform: open ? "rotate(180deg)" : "none", transition:"transform 0.2s" }} />
       </button>
       {open && (
-        <div style={{ padding:"0.5rem 0.75rem 0.75rem", borderRadius:10, backgroundColor:"#fafafa", marginTop:2 }}>
+        <div style={{ padding:"0.5rem 0.75rem 0.75rem", borderRadius:10, backgroundColor: dk ? "#1d1f23" : "#fafafa", marginTop:2 }}>
           {children}
         </div>
       )}
@@ -199,12 +204,15 @@ export default function ExplorePage() {
   const [pendingFilters, setPendingFilters] = useState({ interests: [] as string[], availability: "", location: "" });
   const [appliedFilters, setAppliedFilters] = useState({ interests: [] as string[], availability: "", location: "" });
   const [toast, setToast] = useState<{ name: string; type: "sent"|"already_sent" } | null>(null);
+  const [matchPopup, setMatchPopup] = useState<{ name: string; avatar: string | null; shared: string[] } | null>(null);
 
   const { user, profile: myProfile } = useAuth();
   const { blockedIds } = useBlocks();
   const { sendConnect } = useConnections();
   const router = useRouter();
   const supabase = createClient();
+  const { theme } = useTheme();
+  const d = theme === "dark";
 
   useEffect(() => {
     const fetch = async () => {
@@ -245,6 +253,20 @@ export default function ExplorePage() {
     ? calculateAffinityScore(myProfile?.interests || [], currentProfile.interests || [])
     : 0;
 
+  const sharedInterests = useMemo(() => {
+    if (!currentProfile || !myProfile?.interests) return [];
+    const mySet = new Set(myProfile.interests);
+    return (currentProfile.interests || []).filter(i => mySet.has(i));
+  }, [currentProfile, myProfile?.interests]);
+
+  const onlineStatus = useMemo(() => {
+    if (!currentProfile?.last_seen_at) return "offline";
+    const diff = Date.now() - new Date(currentProfile.last_seen_at).getTime();
+    if (diff < 5 * 60 * 1000) return "online";
+    if (diff < 30 * 60 * 1000) return "recently";
+    return "offline";
+  }, [currentProfile]);
+
   const advance = useCallback((dir: "left"|"right") => {
     setExitDir(dir);
     setTimeout(() => {
@@ -257,11 +279,30 @@ export default function ExplorePage() {
   const handleConnect = useCallback(async () => {
     if (!user || !currentProfile) { advance("right"); return; }
     const name = currentProfile.full_name?.split(" ")[0] || "them";
+    const avatar = currentProfile.avatar_url;
+    const mySet = new Set(myProfile?.interests || []);
+    const shared = (currentProfile.interests || []).filter(i => mySet.has(i));
     advance("right");
     const result = await sendConnect(user.id, currentProfile.id);
-    setToast({ name, type: result });
-    setTimeout(() => setToast(null), 2800);
-  }, [user, currentProfile, advance, sendConnect]);
+    if (result === "sent" && shared.length > 0) {
+      setMatchPopup({ name, avatar, shared });
+    } else {
+      setToast({ name, type: result });
+      setTimeout(() => setToast(null), 2800);
+    }
+  }, [user, currentProfile, myProfile?.interests, advance, sendConnect]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (matchPopup) { if (e.key === "Escape" || e.key === "Enter") setMatchPopup(null); return; }
+      if (!currentProfile || exitDir) return;
+      if (e.key === "ArrowLeft") advance("left");
+      if (e.key === "ArrowRight") handleConnect();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [currentProfile, exitDir, matchPopup, advance, handleConnect]);
 
   const handleApply = () => {
     setAppliedFilters(pendingFilters);
@@ -282,17 +323,17 @@ export default function ExplorePage() {
   return (
     <>  
     <PageTransition>
-      <div style={{ backgroundColor:"#f4f3fa", minHeight:"100vh", paddingTop:"4rem" }}>
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
-          <div style={{ display:"flex", gap:28, alignItems:"flex-start" }}>
+      <div style={{ backgroundColor: d ? "#000" : "#f4f3fa", minHeight:"100vh", paddingTop:"3.5rem" }}>
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-5">
+          <div style={{ display:"flex", gap:24, alignItems:"flex-start" }}>
 
             {/* ─── Sidebar ─── */}
             <aside className="hidden lg:flex" style={{
               width:230, flexShrink:0, flexDirection:"column",
-              backgroundColor:"#fff", borderRadius:20, padding:"1.5rem 1.25rem",
-              boxShadow:"0 4px 20px rgba(0,0,0,0.06)", position:"sticky", top:"5rem",
+              backgroundColor: d ? "#16181c" : "#fff", borderRadius:20, padding:"1.5rem 1.25rem",
+              boxShadow: d ? "0 4px 20px rgba(0,0,0,0.3)" : "0 4px 20px rgba(0,0,0,0.06)", position:"sticky", top:"5rem",
             }}>
-              <h2 style={{ fontSize:"1rem",fontWeight:700,color:"#1a1a2e",marginBottom:"0.25rem" }}>
+              <h2 style={{ fontSize:"1rem",fontWeight:700,color: d ? "#e7e9ea" : "#1a1a2e",marginBottom:"0.25rem" }}>
                 Discovery Filters
               </h2>
               <p style={{ fontSize:"0.6875rem",color:"#a1a1aa",marginBottom:"1.25rem" }}>
@@ -395,9 +436,14 @@ export default function ExplorePage() {
             {/* ─── Center ─── */}
             <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:28, minWidth:0 }}>
               {!loading && currentProfile && (
-                <p style={{ fontSize:"0.75rem",color:"#b0aac8",letterSpacing:"0.04em" }}>
-                  ← drag to pass &nbsp;·&nbsp; drag to connect →
-                </p>
+                <div style={{ display:"flex",alignItems:"center",gap:12,justifyContent:"center" }}>
+                  <p style={{ fontSize:"0.75rem",color:"#b0aac8",letterSpacing:"0.04em" }}>
+                    ← drag to pass &nbsp;·&nbsp; drag to connect →
+                  </p>
+                  <span style={{ fontSize:"0.6875rem",color:"#a1a1aa",backgroundColor: d ? "rgba(168,85,247,0.12)" : "#ede9fe",padding:"0.15rem 0.5rem",borderRadius:12,fontWeight:500 }}>
+                    {currentIndex + 1} / {filtered.length}
+                  </span>
+                </div>
               )}
               {hasFilters && (
                 <div style={{ display:"flex",gap:6,flexWrap:"wrap",justifyContent:"center" }}>
@@ -485,7 +531,119 @@ export default function ExplorePage() {
               )}
               </div>
 
-              <div className="hidden xl:block" style={{ width:230,flexShrink:0 }} />
+              <div className="hidden xl:flex" style={{
+                width:240, flexShrink:0, flexDirection:"column", gap:16,
+                position:"sticky", top:"5rem",
+              }}>
+                {currentProfile && (
+                  <>
+                    {/* Affinity Score Card */}
+                    <div style={{
+                      backgroundColor: d ? "#16181c" : "#fff", borderRadius:20, padding:"1.5rem",
+                      boxShadow: d ? "0 4px 20px rgba(0,0,0,0.3)" : "0 4px 20px rgba(0,0,0,0.06)",
+                      display:"flex", flexDirection:"column", alignItems:"center", gap:14,
+                    }}>
+                      <div style={{ position:"relative", width:80, height:80 }}>
+                        <svg viewBox="0 0 36 36" style={{ width:80, height:80, transform:"rotate(-90deg)" }}>
+                          <circle cx="18" cy="18" r="15.5" fill="none" stroke="#ede9fe" strokeWidth="2.5" />
+                          <circle cx="18" cy="18" r="15.5" fill="none" stroke="url(#scoreGrad)" strokeWidth="2.5"
+                            strokeLinecap="round" strokeDasharray={`${affinityScore * 0.974} 100`}
+                            style={{ transition:"stroke-dasharray 0.6s ease" }} />
+                          <defs>
+                            <linearGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="1">
+                              <stop offset="0%" stopColor="#7c3aed" />
+                              <stop offset="100%" stopColor="#a855f7" />
+                            </linearGradient>
+                          </defs>
+                        </svg>
+                        <div style={{
+                          position:"absolute", inset:0, display:"flex", flexDirection:"column",
+                          alignItems:"center", justifyContent:"center",
+                        }}>
+                          <span style={{ fontSize:"1.25rem", fontWeight:700, color: d ? "#e7e9ea" : "#1a1a2e", lineHeight:1 }}>{affinityScore}</span>
+                          <span style={{ fontSize:"0.5rem", color:"#a1a1aa", fontWeight:500, letterSpacing:"0.05em", textTransform:"uppercase" }}>affinity</span>
+                        </div>
+                      </div>
+                      <p style={{ fontSize:"0.6875rem", color:"#a1a1aa", textAlign:"center", lineHeight:1.4 }}>
+                        {affinityScore >= 50 ? "Strong match potential!" : affinityScore > 0 ? "Some shared vibes" : "Different worlds — explore!"}
+                      </p>
+                    </div>
+
+                    {/* Info Card */}
+                    <div style={{
+                      backgroundColor: d ? "#16181c" : "#fff", borderRadius:20, padding:"1.25rem",
+                      boxShadow: d ? "0 4px 20px rgba(0,0,0,0.3)" : "0 4px 20px rgba(0,0,0,0.06)",
+                    }}>
+                      {/* Online status */}
+                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+                        <div style={{
+                          width:8, height:8, borderRadius:"50%",
+                          backgroundColor: onlineStatus === "online" ? "#22c55e" : onlineStatus === "recently" ? "#f59e0b" : "#d1d5db",
+                          boxShadow: onlineStatus === "online" ? "0 0 6px rgba(34,197,94,0.5)" : "none",
+                        }} />
+                        <span style={{ fontSize:"0.75rem", color:"#888", fontWeight:500 }}>
+                          {onlineStatus === "online" ? "Online now" : onlineStatus === "recently" ? "Recently active" : "Offline"}
+                        </span>
+                      </div>
+
+                      {/* Location */}
+                      {currentProfile.location && (
+                        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+                          <MapPin size={13} color="#7c3aed" />
+                          <span style={{ fontSize:"0.75rem", color:"#555" }}>{currentProfile.location}</span>
+                        </div>
+                      )}
+
+                      {/* Availability */}
+                      {currentProfile.availability && (
+                        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+                          <Clock size={13} color="#7c3aed" />
+                          <span style={{ fontSize:"0.75rem", color:"#555" }}>{currentProfile.availability}</span>
+                        </div>
+                      )}
+
+                      {/* Category */}
+                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        <Zap size={13} color="#7c3aed" />
+                        <span style={{ fontSize:"0.75rem", color:"#555" }}>{getProfileCategory(currentProfile)}</span>
+                      </div>
+                    </div>
+
+                    {/* Shared Interests */}
+                    {sharedInterests.length > 0 && (
+                      <div style={{
+                        backgroundColor: d ? "#16181c" : "#fff", borderRadius:20, padding:"1.25rem",
+                        boxShadow: d ? "0 4px 20px rgba(0,0,0,0.3)" : "0 4px 20px rgba(0,0,0,0.06)",
+                      }}>
+                        <p style={{ fontSize:"0.625rem", fontWeight:700, letterSpacing:"0.1em", color:"#7c3aed", textTransform:"uppercase", marginBottom:10 }}>
+                          Shared Interests
+                        </p>
+                        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                          {sharedInterests.map(interest => (
+                            <span key={interest} style={{
+                              fontSize:"0.6875rem", fontWeight:500, color:"#7c3aed",
+                              padding:"0.25rem 0.625rem", borderRadius:20,
+                              backgroundColor:"#f5f3ff", border:"1px solid #ede9fe",
+                            }}>
+                              {interest}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Keyboard hints */}
+                    <div style={{ display:"flex", justifyContent:"center", gap:12, paddingTop:4 }}>
+                      <span style={{ fontSize:"0.625rem", color: d ? "#71767b" : "#ccc", display:"flex", alignItems:"center", gap:4 }}>
+                        <kbd style={{ padding:"1px 5px", borderRadius:4, border: d ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e5e5e5", backgroundColor: d ? "#16181c" : "#fafafa", fontSize:"0.625rem", fontFamily:"inherit" }}>←</kbd> Pass
+                      </span>
+                      <span style={{ fontSize:"0.625rem", color: d ? "#71767b" : "#ccc", display:"flex", alignItems:"center", gap:4 }}>
+                        <kbd style={{ padding:"1px 5px", borderRadius:4, border: d ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e5e5e5", backgroundColor: d ? "#16181c" : "#fafafa", fontSize:"0.625rem", fontFamily:"inherit" }}>→</kbd> Connect
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -509,7 +667,86 @@ export default function ExplorePage() {
             : `You already sent a request to ${toast.name}`}
         </div>
       )}
-      <style>{`@keyframes slideUp { from { opacity:0; transform:translateX(-50%) translateY(12px) } to { opacity:1; transform:translateX(-50%) translateY(0) } }`}</style>
+      <style>{`@keyframes slideUp { from { opacity:0; transform:translateX(-50%) translateY(12px) } to { opacity:1; transform:translateX(-50%) translateY(0) } }
+@keyframes matchFadeIn { from { opacity:0 } to { opacity:1 } }
+@keyframes matchScaleIn { from { opacity:0; transform:translate(-50%,-50%) scale(0.7) } to { opacity:1; transform:translate(-50%,-50%) scale(1) } }
+@keyframes matchPulse { 0%,100% { transform:scale(1) } 50% { transform:scale(1.12) } }
+@keyframes matchFloat { 0% { transform:translateY(0) } 50% { transform:translateY(-6px) } 100% { transform:translateY(0) } }
+@keyframes matchShine { from { left:-100% } to { left:200% } }`}</style>
+
+      {/* ─── Match Popup ─── */}
+      {matchPopup && (
+        <div onClick={() => setMatchPopup(null)} style={{
+          position:"fixed", inset:0, zIndex:2000,
+          backgroundColor:"rgba(26,26,46,0.75)", backdropFilter:"blur(8px)",
+          animation:"matchFadeIn 0.3s ease",
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            position:"absolute", top:"50%", left:"50%",
+            transform:"translate(-50%,-50%)",
+            width:"90%", maxWidth:380,
+            backgroundColor:"#fff", borderRadius:28,
+            padding:"2.5rem 2rem 2rem",
+            boxShadow:"0 32px 80px rgba(124,58,237,0.25), 0 0 0 1px rgba(124,58,237,0.08)",
+            textAlign:"center",
+            animation:"matchScaleIn 0.4s cubic-bezier(0.34,1.56,0.64,1)",
+            overflow:"hidden",
+          }}>
+            {/* Shine sweep */}
+            <div style={{ position:"absolute", top:0, left:"-100%", width:"50%", height:"100%",
+              background:"linear-gradient(90deg, transparent, rgba(124,58,237,0.06), transparent)",
+              animation:"matchShine 1.5s ease 0.4s", pointerEvents:"none" }} />
+
+            {/* Sparkle icon */}
+            <div style={{ marginBottom:16, animation:"matchPulse 1.5s ease infinite" }}>
+              <div style={{
+                width:64, height:64, borderRadius:"50%", margin:"0 auto",
+                background:"linear-gradient(135deg,#7c3aed 0%,#a855f7 50%,#c084fc 100%)",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                boxShadow:"0 8px 24px rgba(124,58,237,0.3)",
+              }}>
+                <Sparkles size={28} color="#fff" />
+              </div>
+            </div>
+
+            <h2 className="font-display" style={{ fontSize:"1.75rem", fontWeight:800, color:"#1a1a2e", marginBottom:4, letterSpacing:"-0.02em" }}>
+              It&apos;s a Match!
+            </h2>
+            <p style={{ fontSize:"0.875rem", color:"#888", marginBottom:20 }}>
+              You and <span style={{ color:"#7c3aed", fontWeight:600 }}>{matchPopup.name}</span> share curated interests
+            </p>
+
+            {/* Shared interests */}
+            <div style={{ display:"flex", flexWrap:"wrap", gap:8, justifyContent:"center", marginBottom:24 }}>
+              {matchPopup.shared.map((interest, idx) => (
+                <span key={interest} style={{
+                  fontSize:"0.75rem", fontWeight:600, color:"#7c3aed",
+                  padding:"0.3rem 0.75rem", borderRadius:20,
+                  background:"linear-gradient(135deg,#f5f3ff,#ede9fe)",
+                  border:"1px solid #ddd6fe",
+                  animation:`matchFloat 2s ease ${idx * 0.15}s infinite`,
+                }}>
+                  {interest}
+                </span>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
+              <button onClick={() => setMatchPopup(null)} style={{
+                padding:"0.7rem 1.5rem", borderRadius:24,
+                background:"linear-gradient(135deg,#7c3aed 0%,#a855f7 100%)",
+                color:"#fff", fontSize:"0.8125rem", fontWeight:600,
+                border:"none", cursor:"pointer", transition:"opacity 0.15s",
+              }}
+                onMouseEnter={e => e.currentTarget.style.opacity="0.88"}
+                onMouseLeave={e => e.currentTarget.style.opacity="1"}>
+                Keep Exploring
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -520,15 +757,20 @@ function ActionBtn({ onClick, title, hoverBg, hoverBorder, hoverColor, size, chi
   hoverBg: string; hoverBorder: string; hoverColor: string; size: number;
   children: React.ReactNode;
 }) {
+  const { theme } = useTheme();
+  const dk = theme === "dark";
+  const baseBg = dk ? "#16181c" : "#fff";
+  const baseBorder = dk ? "rgba(255,255,255,0.1)" : "#e5e5f0";
+  const baseColor = dk ? "#71767b" : "#888";
   return (
     <button onClick={onClick} title={title} style={{
-      width:size,height:size,borderRadius:"50%",backgroundColor:"#fff",
-      border:"1.5px solid #e5e5f0",display:"flex",alignItems:"center",
+      width:size,height:size,borderRadius:"50%",backgroundColor:baseBg,
+      border:`1.5px solid ${baseBorder}`,display:"flex",alignItems:"center",
       justifyContent:"center",cursor:"pointer",
-      boxShadow:"0 4px 16px rgba(0,0,0,0.08)",transition:"all 0.2s ease",color:"#888",
+      boxShadow: dk ? "0 4px 16px rgba(0,0,0,0.3)" : "0 4px 16px rgba(0,0,0,0.08)",transition:"all 0.2s ease",color:baseColor,
     }}
       onMouseEnter={e => { e.currentTarget.style.backgroundColor=hoverBg; e.currentTarget.style.borderColor=hoverBorder; e.currentTarget.style.color=hoverColor; e.currentTarget.style.transform="scale(1.08)"; }}
-      onMouseLeave={e => { e.currentTarget.style.backgroundColor="#fff"; e.currentTarget.style.borderColor="#e5e5f0"; e.currentTarget.style.color="#888"; e.currentTarget.style.transform="scale(1)"; }}>
+      onMouseLeave={e => { e.currentTarget.style.backgroundColor=baseBg; e.currentTarget.style.borderColor=baseBorder; e.currentTarget.style.color=baseColor; e.currentTarget.style.transform="scale(1)"; }}>
       {children}
     </button>
   );

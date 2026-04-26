@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Edit3, Check, X, Plus, Camera, ImagePlus, Share2, ChevronDown } from "lucide-react";
+import { MapPin, Edit3, Check, X, Plus, Camera, ImagePlus, Share2, ChevronDown, Trash2, Clock, Send } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import { useTheme } from "@/components/providers/ThemeProvider";
 import { InterestTag } from "@/components/ui/InterestTag";
 import { FollowListModal } from "@/components/ui/FollowListModal";
 import { PageTransition } from "@/components/ui/PageTransition";
@@ -52,10 +53,16 @@ export default function MyProfilePage() {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [followModal, setFollowModal] = useState<"followers" | "following" | null>(null);
+  const [posts, setPosts] = useState<{id:string;content:string;created_at:string}[]>([]);
+  const [postContent, setPostContent] = useState("");
+  const [postCount, setPostCount] = useState(0);
+  const [posting, setPosting] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const supabase = createClient();
+  const { theme } = useTheme();
+  const d = theme === "dark";
 
   useEffect(() => {
     if (!loading && !user) {
@@ -86,6 +93,60 @@ export default function MyProfilePage() {
     fetchCounts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Fetch posts
+  useEffect(() => {
+    if (!user) return;
+    const fetchPosts = async () => {
+      const { data, count } = await supabase
+        .from("posts")
+        .select("id, content, created_at", { count: "exact" })
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (data) setPosts(data);
+      setPostCount(count ?? 0);
+    };
+    fetchPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const handlePost = async () => {
+    if (!user || !postContent.trim() || posting) return;
+    setPosting(true);
+    const { data, error } = await supabase
+      .from("posts")
+      .insert({ user_id: user.id, content: postContent.trim() })
+      .select("id, content, created_at")
+      .single();
+    if (error) {
+      console.error("Post error:", error);
+      alert("Failed to post: " + error.message);
+    }
+    if (data) {
+      setPosts(prev => [data, ...prev]);
+      setPostCount(c => c + 1);
+      setPostContent("");
+    }
+    setPosting(false);
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    await supabase.from("posts").delete().eq("id", postId);
+    setPosts(prev => prev.filter(p => p.id !== postId));
+    setPostCount(c => Math.max(0, c - 1));
+  };
+
+  const formatPostTime = (iso: string) => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return "Just now";
+    if (min < 60) return `${min}m`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}h`;
+    const da = Math.floor(hr / 24);
+    if (da < 7) return `${da}d`;
+    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -218,7 +279,7 @@ export default function MyProfilePage() {
 
   return (
     <PageTransition>
-    <div style={{ backgroundColor: "#faf9fd", minHeight: "100vh", paddingTop: "4rem" }}>
+    <div style={{ backgroundColor: d ? "#000" : "#faf9fd", minHeight: "100vh", paddingTop: "4rem" }}>
       {/* Hidden file inputs */}
       <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarSelect} style={{ display: "none" }} />
       <input ref={coverInputRef} type="file" accept="image/*" onChange={handleCoverSelect} style={{ display: "none" }} />
@@ -324,8 +385,8 @@ export default function MyProfilePage() {
                   className="flex items-center gap-2 transition-all duration-200 hover:shadow-md"
                   style={{
                     fontSize: "0.8125rem", fontWeight: 600, padding: "0.6rem 1.25rem",
-                    backgroundColor: "#fff", color: "#1a1a2e",
-                    border: "1px solid rgba(0,0,0,0.08)", borderRadius: "12px", cursor: "pointer",
+                    backgroundColor: d ? "#16181c" : "#fff", color: d ? "#e7e9ea" : "#1a1a2e",
+                    border: `1px solid ${d ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}`, borderRadius: "12px", cursor: "pointer",
                   }}
                 >
                   <Edit3 size={13} /> Edit Profile
@@ -334,8 +395,8 @@ export default function MyProfilePage() {
                   className="flex items-center justify-center transition-all duration-200 hover:shadow-md"
                   style={{
                     width: 38, height: 38, borderRadius: "12px",
-                    backgroundColor: "#fff", border: "1px solid rgba(0,0,0,0.08)",
-                    cursor: "pointer", color: "#555",
+                    backgroundColor: d ? "#16181c" : "#fff", border: `1px solid ${d ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}`,
+                    cursor: "pointer", color: d ? "#71767b" : "#555",
                   }}
                 >
                   <Share2 size={16} />
@@ -344,7 +405,7 @@ export default function MyProfilePage() {
             ) : (
               <>
                 <button onClick={handleCancel} className="flex items-center gap-2 transition-all hover:shadow-md"
-                  style={{ fontSize: "0.8125rem", fontWeight: 600, padding: "0.6rem 1.25rem", backgroundColor: "#fff", color: "#888", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "12px", cursor: "pointer" }}>
+                  style={{ fontSize: "0.8125rem", fontWeight: 600, padding: "0.6rem 1.25rem", backgroundColor: d ? "#16181c" : "#fff", color: d ? "#71767b" : "#888", border: `1px solid ${d ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}`, borderRadius: "12px", cursor: "pointer" }}>
                   <X size={13} /> Cancel
                 </button>
                 <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 transition-all hover:shadow-lg"
@@ -367,16 +428,16 @@ export default function MyProfilePage() {
             <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Your name"
               className="font-sans"
               style={{
-                fontSize: "1.75rem", fontWeight: 700, color: "#1a1a2e",
+                fontSize: "1.75rem", fontWeight: 700, color: d ? "#e7e9ea" : "#1a1a2e",
                 letterSpacing: "-0.03em", width: "100%",
-                border: "none", borderBottom: "2px solid #ede9fe",
+                border: "none", borderBottom: `2px solid ${d ? "rgba(255,255,255,0.1)" : "#ede9fe"}`,
                 outline: "none", padding: "0.15rem 0", backgroundColor: "transparent",
               }}
             />
           ) : (
             <h1
               className="font-sans"
-              style={{ fontSize: "1.75rem", fontWeight: 700, color: "#1a1a2e", letterSpacing: "-0.03em" }}
+              style={{ fontSize: "1.75rem", fontWeight: 700, color: d ? "#e7e9ea" : "#1a1a2e", letterSpacing: "-0.03em" }}
             >
               {displayName}
             </h1>
@@ -412,129 +473,191 @@ export default function MyProfilePage() {
           </div>
         </div>
 
-        {/* Stats row */}
-        <div className="flex items-center gap-8 mb-8" style={{ paddingTop: "0.5rem" }}>
+        <div className="flex items-center gap-8 mb-6" style={{ paddingTop: "0.5rem" }}>
           <button onClick={() => setFollowModal("followers")} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "center" }}>
-            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#1a1a2e" }}>{formatCount(followerCount)}</p>
-            <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Followers</p>
+            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: d ? "#e7e9ea" : "#1a1a2e" }}>{formatCount(followerCount)}</p>
+            <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: d ? "#71767b" : "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Followers</p>
           </button>
           <button onClick={() => setFollowModal("following")} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "center" }}>
-            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#1a1a2e" }}>{formatCount(followingCount)}</p>
-            <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Following</p>
+            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: d ? "#e7e9ea" : "#1a1a2e" }}>{formatCount(followingCount)}</p>
+            <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: d ? "#71767b" : "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Following</p>
           </button>
           <div style={{ textAlign: "center" }}>
-            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#1a1a2e" }}>0</p>
-            <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Journals</p>
+            <p style={{ fontSize: "1.25rem", fontWeight: 700, color: d ? "#e7e9ea" : "#1a1a2e" }}>{postCount}</p>
+            <p style={{ fontSize: "0.6875rem", fontWeight: 500, color: d ? "#71767b" : "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.06em" }}>Posts</p>
           </div>
         </div>
 
-        {/* Profile details */}
-        <div className="flex flex-col gap-5" style={{ maxWidth: 600, paddingBottom: "3rem" }}>
+        {/* ── Compact profile info (Twitter-style) ── */}
+        <div style={{ maxWidth: 600, paddingBottom: "1rem" }}>
+          {/* Bio */}
+          {editing ? (
+            <textarea value={editBio} onChange={(e) => setEditBio(e.target.value)} placeholder="Tell people about yourself…" rows={3}
+              style={{
+                fontSize: "0.9375rem", color: d ? "#e7e9ea" : "#555", lineHeight: 1.7, width: "100%",
+                border: `1px solid ${d ? "rgba(255,255,255,0.1)" : "#ede9fe"}`, borderRadius: "12px", padding: "0.75rem",
+                outline: "none", resize: "vertical", backgroundColor: d ? "#16181c" : "#f5f3ff",
+                fontFamily: "inherit", marginBottom: "0.75rem",
+              }}
+            />
+          ) : (
+            <p style={{ fontSize: "0.9375rem", color: d ? "#e7e9ea" : "#555", lineHeight: 1.7, marginBottom: "0.5rem" }}>
+              {profile?.bio || "Add a bio to tell people about yourself."}
+            </p>
+          )}
 
-            {/* About card */}
-            <div style={{ backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem", boxShadow: "var(--shadow-sm)" }}>
-              <p style={{ fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", color: "#7c3aed", textTransform: "uppercase", marginBottom: "0.75rem" }}>
-                About
-              </p>
-              {editing ? (
-                <textarea value={editBio} onChange={(e) => setEditBio(e.target.value)} placeholder="Tell people about yourself…" rows={4}
-                  style={{
-                    fontSize: "0.9375rem", color: "#555", lineHeight: 1.7, width: "100%",
-                    border: "1px solid #ede9fe", borderRadius: "12px", padding: "0.75rem",
-                    outline: "none", resize: "vertical", backgroundColor: "#f5f3ff",
-                    fontFamily: "inherit",
-                  }}
-                />
-              ) : (
-                <p style={{ fontSize: "0.9375rem", color: "#555", lineHeight: 1.7 }}>
-                  {profile?.bio || "Add a bio to tell people about yourself."}
-                </p>
-              )}
-            </div>
+          {/* Meta line: availability · email · joined */}
+          {!editing && (
+            <p style={{ fontSize: "0.8125rem", color: d ? "#71767b" : "#a1a1aa", marginBottom: "0.75rem" }}>
+              {profile?.availability && <><Clock size={11} style={{ display: "inline", marginRight: 4, verticalAlign: "-1px" }} />{profile.availability} · </>}
+              {user.email} · Joined {new Date(user.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+            </p>
+          )}
 
-            {/* Interests card */}
-            <div style={{ backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem", boxShadow: "var(--shadow-sm)" }}>
-              <p style={{ fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", color: "#7c3aed", textTransform: "uppercase", marginBottom: "0.75rem" }}>
-                Curated Interests
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {editing ? (
-                  <>
-                    {editInterests.map((interest) => (
-                      <button key={interest} onClick={() => toggleInterest(interest)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
-                        <InterestTag label={interest} filled size="md" />
-                      </button>
-                    ))}
-                    <button onClick={() => setShowInterestPicker((v) => !v)} className="flex items-center gap-1 transition-opacity hover:opacity-70"
-                      style={{ fontSize: "0.75rem", color: "#7c3aed", border: "1px dashed #c4b5fd", borderRadius: "20px", padding: "0.25rem 0.75rem", background: "none", cursor: "pointer", fontWeight: 500 }}>
-                      <Plus size={12} /> Add
-                    </button>
-                  </>
-                ) : (
-                  (profile?.interests?.length ?? 0) > 0 ? (
-                    profile?.interests.map((interest) => (
-                      <InterestTag key={interest} label={interest} size="md" />
-                    ))
-                  ) : (
-                    <p style={{ fontSize: "0.8125rem", color: "#ccc", fontStyle: "italic" }}>
-                      No interests added yet.
-                    </p>
-                  )
+          {/* Editing: availability radios */}
+          {editing && (
+            <div style={{ marginBottom: "0.75rem" }}>
+              <p style={{ fontSize: "0.6875rem", fontWeight: 600, color: d ? "#71767b" : "#a1a1aa", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Availability</p>
+              <div className="flex items-center gap-3 flex-wrap">
+                {availabilityOptions.map((opt) => (
+                  <label key={opt} className="flex items-center gap-1.5 cursor-pointer" style={{ fontSize: "0.8125rem", color: d ? "#e7e9ea" : "#555" }}>
+                    <input type="radio" name="availability" checked={editAvailability === opt}
+                      onChange={() => setEditAvailability(opt)} style={{ accentColor: "#7c3aed" }} />
+                    {opt}
+                  </label>
+                ))}
+                {editAvailability && (
+                  <button onClick={() => setEditAvailability("")} style={{ fontSize: "0.75rem", color: "#a1a1aa", background: "none", border: "none", cursor: "pointer" }}>Clear</button>
                 )}
               </div>
-              {editing && showInterestPicker && (
-                <div className="mt-3 p-4 flex flex-wrap gap-2"
-                  style={{ border: "1px solid #ede9fe", borderRadius: "14px", backgroundColor: "#f5f3ff", maxHeight: 200, overflowY: "auto" }}>
-                  {allInterests.filter((i) => !editInterests.includes(i)).map((interest) => (
-                    <button key={interest} onClick={() => toggleInterest(interest)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
-                      <InterestTag label={interest} size="sm" />
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
+          )}
 
-            {/* Availability card */}
-            <div style={{ backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem", boxShadow: "var(--shadow-sm)" }}>
-              <p style={{ fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", color: "#7c3aed", textTransform: "uppercase", marginBottom: "0.75rem" }}>
-                Availability
-              </p>
-              {editing ? (
-                <div className="flex flex-col gap-2">
-                  {availabilityOptions.map((opt) => (
-                    <label key={opt} className="flex items-center gap-2 cursor-pointer" style={{ fontSize: "0.8125rem", color: "#555" }}>
-                      <input
-                        type="radio" name="availability"
-                        checked={editAvailability === opt}
-                        onChange={() => setEditAvailability(opt)}
-                        style={{ accentColor: "#7c3aed" }}
-                      />
-                      {opt}
-                    </label>
-                  ))}
-                  {editAvailability && (
-                    <button onClick={() => setEditAvailability("")} style={{ fontSize: "0.75rem", color: "#a1a1aa", background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0, marginTop: "0.25rem" }}>
-                      Clear selection
-                    </button>
+          {/* Interests */}
+          <div className="flex flex-wrap gap-2" style={{ marginBottom: "0.25rem" }}>
+            {editing ? (
+              <>
+                {editInterests.map((interest) => (
+                  <button key={interest} onClick={() => toggleInterest(interest)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+                    <InterestTag label={interest} filled size="md" />
+                  </button>
+                ))}
+                <button onClick={() => setShowInterestPicker((v) => !v)} className="flex items-center gap-1 transition-opacity hover:opacity-70"
+                  style={{ fontSize: "0.75rem", color: "#7c3aed", border: "1px dashed #c4b5fd", borderRadius: "20px", padding: "0.25rem 0.75rem", background: "none", cursor: "pointer", fontWeight: 500 }}>
+                  <Plus size={12} /> Add
+                </button>
+              </>
+            ) : (
+              (profile?.interests?.length ?? 0) > 0 ? (
+                profile?.interests.map((interest) => (
+                  <InterestTag key={interest} label={interest} size="md" />
+                ))
+              ) : null
+            )}
+          </div>
+          {editing && showInterestPicker && (
+            <div className="mt-2 p-3 flex flex-wrap gap-2"
+              style={{ border: `1px solid ${d ? "rgba(255,255,255,0.1)" : "#ede9fe"}`, borderRadius: "14px", backgroundColor: d ? "#16181c" : "#f5f3ff", maxHeight: 180, overflowY: "auto" }}>
+              {allInterests.filter((i) => !editInterests.includes(i)).map((interest) => (
+                <button key={interest} onClick={() => toggleInterest(interest)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+                  <InterestTag label={interest} size="sm" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── Divider ── */}
+        <div style={{ borderBottom: `1px solid ${d ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}`, marginBottom: "1rem" }} />
+
+        {/* ── Post Composer ── */}
+        <div style={{ maxWidth: 600, paddingBottom: "1rem" }}>
+          <div style={{
+            display: "flex", gap: 12, alignItems: "flex-start",
+            padding: "1rem", borderRadius: 16,
+            backgroundColor: d ? "#16181c" : "#fff",
+            border: `1px solid ${d ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}`,
+          }}>
+            {currentAvatar ? (
+              <img src={currentAvatar} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+            ) : (
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--gradient-purple)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 600, color: "#fff", flexShrink: 0 }}>{initials}</div>
+            )}
+            <div style={{ flex: 1 }}>
+              <textarea
+                value={postContent}
+                onChange={(e) => setPostContent(e.target.value.slice(0, 500))}
+                placeholder="What's on your mind?"
+                rows={2}
+                style={{
+                  width: "100%", fontSize: "0.9375rem", color: d ? "#e7e9ea" : "#1a1a2e",
+                  backgroundColor: "transparent", border: "none", outline: "none",
+                  resize: "none", fontFamily: "inherit", lineHeight: 1.5,
+                }}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+                <span style={{ fontSize: "0.6875rem", color: postContent.length > 450 ? "#f4212e" : d ? "#71767b" : "#a1a1aa" }}>
+                  {postContent.length}/500
+                </span>
+                <button
+                  onClick={handlePost}
+                  disabled={!postContent.trim() || posting}
+                  style={{
+                    padding: "0.4rem 1rem", borderRadius: 20,
+                    background: postContent.trim() ? "var(--gradient-purple)" : d ? "#333" : "#e5e5e5",
+                    color: postContent.trim() ? "#fff" : d ? "#555" : "#aaa",
+                    fontSize: "0.8125rem", fontWeight: 600, border: "none",
+                    cursor: postContent.trim() ? "pointer" : "not-allowed",
+                    opacity: posting ? 0.6 : 1,
+                    display: "flex", alignItems: "center", gap: 6,
+                  }}
+                >
+                  <Send size={13} /> Post
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Posts Feed ── */}
+        <div style={{ maxWidth: 600, paddingBottom: "3rem" }}>
+          {posts.length === 0 ? (
+            <p style={{ fontSize: "0.875rem", color: d ? "#71767b" : "#ccc", textAlign: "center", padding: "2rem 0" }}>
+              No posts yet. Share your first thought!
+            </p>
+          ) : (
+            posts.map((post) => (
+              <div key={post.id} style={{
+                padding: "1rem 0",
+                borderBottom: `1px solid ${d ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"}`,
+              }}>
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  {currentAvatar ? (
+                    <img src={currentAvatar} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--gradient-purple)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 600, color: "#fff", flexShrink: 0 }}>{initials}</div>
                   )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <span style={{ fontSize: "0.875rem", fontWeight: 600, color: d ? "#e7e9ea" : "#1a1a2e" }}>{displayName}</span>
+                      <span style={{ fontSize: "0.75rem", color: d ? "#71767b" : "#a1a1aa" }}>· {formatPostTime(post.created_at)}</span>
+                      <button
+                        onClick={() => handleDeletePost(post.id)}
+                        title="Delete post"
+                        className="transition-opacity hover:opacity-70"
+                        style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: d ? "#71767b" : "#ccc", padding: 2 }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                    <p style={{ fontSize: "0.9375rem", color: d ? "#e7e9ea" : "#333", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                      {post.content}
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <p style={{ fontSize: "0.8125rem", color: profile?.availability ? "#555" : "#ccc", fontStyle: profile?.availability ? "normal" : "italic" }}>
-                  {profile?.availability || "Not set"}
-                </p>
-              )}
-            </div>
-
-            {/* Account */}
-            <div style={{ backgroundColor: "#fff", borderRadius: "20px", padding: "1.5rem", boxShadow: "var(--shadow-sm)" }}>
-              <p style={{ fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", color: "#7c3aed", textTransform: "uppercase", marginBottom: "0.5rem" }}>
-                Account
-              </p>
-              <p style={{ fontSize: "0.8125rem", color: "#888", marginBottom: "0.25rem" }}>{user.email}</p>
-              <p style={{ fontSize: "0.75rem", color: "#ccc" }}>
-                Joined {new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-              </p>
-            </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
       {followModal && user && (

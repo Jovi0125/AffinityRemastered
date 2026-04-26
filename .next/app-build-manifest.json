@@ -16,16 +16,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(main)/page.js"
     ],
-    "/(auth)/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(auth)/layout.js"
-    ],
-    "/(auth)/signup/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(auth)/signup/page.js"
-    ],
     "/(main)/explore/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -40,6 +30,16 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(main)/messages/page.js"
+    ],
+    "/(main)/profile/[id]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(main)/profile/[id]/page.js"
+    ],
+    "/(main)/activity/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(main)/activity/page.js"
     ]
   }
 }

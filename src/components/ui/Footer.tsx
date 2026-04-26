@@ -1,8 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 export function Footer() {
+  const { theme } = useTheme();
+  const d = theme === "dark";
+
   return (
-    <footer style={{ backgroundColor: "#fff", borderTop: "1px solid #f0f0f0" }}>
+    <footer style={{ backgroundColor: d ? "#000" : "#fff", borderTop: `1px solid ${d ? "rgba(255,255,255,0.08)" : "#f0f0f0"}` }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Brand */}
@@ -32,7 +38,7 @@ export function Footer() {
                 key={label}
                 href="/"
                 className="transition-opacity hover:opacity-60"
-                style={{ fontSize: "0.8125rem", color: "#888", textDecoration: "none" }}
+                style={{ fontSize: "0.8125rem", color: d ? "#71767b" : "#888", textDecoration: "none" }}
               >
                 {label}
               </Link>
@@ -40,7 +46,7 @@ export function Footer() {
           </div>
 
           {/* Copyright */}
-          <p style={{ fontSize: "0.75rem", color: "#bbb" }}>
+          <p style={{ fontSize: "0.75rem", color: d ? "#333639" : "#bbb" }}>
             © 2026 Affinity Companion Network. Designed for connection.
           </p>
         </div>

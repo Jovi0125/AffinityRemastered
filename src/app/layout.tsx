@@ -3,6 +3,7 @@ import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { NotificationProvider } from "@/components/providers/NotificationProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -40,11 +41,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
       <body className="font-sans antialiased" suppressHydrationWarning>
-        <AuthProvider>
-          <NotificationProvider>
-            {children}
-          </NotificationProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              {children}
+            </NotificationProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

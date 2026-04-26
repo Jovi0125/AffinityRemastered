@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, LogOut, User, MessageCircle, Bell, Compass } from "lucide-react";
+import { Menu, X, LogOut, User, MessageCircle, Bell, Compass, Moon, Sun } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useNotifications } from "@/components/providers/NotificationProvider";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 const navLinks = [
   { label: "Discover", href: "/explore", icon: Compass },
@@ -23,6 +24,7 @@ export function Navbar() {
   const router = useRouter();
   const { user, profile, loading, signOut } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { theme, toggleTheme } = useTheme();
 
   const isLoggedIn = !loading && !!user;
 
@@ -88,10 +90,12 @@ export function Navbar() {
     <header
       className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
       style={{
-        backgroundColor: "rgba(255,255,255,0.98)",
+        backgroundColor: theme === "dark" ? "rgba(0,0,0,0.95)" : "rgba(255,255,255,0.98)",
         backdropFilter: "blur(16px)",
-        borderBottom: scrolled ? "1px solid rgba(0,0,0,0.06)" : "1px solid transparent",
-        boxShadow: scrolled ? "0 1px 8px rgba(0,0,0,0.04)" : "none",
+        borderBottom: scrolled
+          ? `1px solid ${theme === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}`
+          : "1px solid transparent",
+        boxShadow: scrolled ? (theme === "dark" ? "0 1px 8px rgba(0,0,0,0.3)" : "0 1px 8px rgba(0,0,0,0.04)") : "none",
       }}
     >
       <nav className="max-w-7xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -111,7 +115,7 @@ export function Navbar() {
             style={{
               fontSize: "1.2rem",
               fontWeight: 700,
-              color: "#1a1a2e",
+              color: theme === "dark" ? "#e7e9ea" : "#1a1a2e",
               letterSpacing: "-0.03em",
             }}
           >
@@ -119,54 +123,61 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-1">
-          {navLinks.map((item) => {
-            if (item.label === "Messages" && !isLoggedIn) return null;
-            const active = isActive(item.href);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                style={{ textDecoration: "none", marginLeft: item.label === "Messages" ? "1.5rem" : 0 }}
-              >
-                <div
-                  className="flex items-center gap-1.5 transition-all duration-200"
-                  style={{
-                    fontSize: "0.8125rem",
-                    fontWeight: active ? 600 : 400,
-                    color: active ? "#7c3aed" : "#666",
-                    padding: "0.45rem 0.875rem",
-                    borderRadius: "10px",
-                    backgroundColor: active ? "#f0ebff" : "transparent",
-                    cursor: "pointer",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) {
-                      e.currentTarget.style.backgroundColor = "#f8f6ff";
-                      e.currentTarget.style.color = "#7c3aed";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                      e.currentTarget.style.color = "#666";
-                    }
-                  }}
-                >
-                  <Icon size={15} strokeWidth={active ? 2.2 : 1.8} />
-                  <span>{item.label}</span>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+
 
         {/* Right side */}
         <div className="hidden md:flex items-center gap-3">
           {isLoggedIn ? (
             <>
+              {/* Nav icon buttons */}
+              {navLinks.map((item) => {
+                if (item.label === "Messages" && !isLoggedIn) return null;
+                const active = isActive(item.href);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    title={item.label}
+                    className="transition-all duration-200"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 36,
+                      height: 36,
+                      borderRadius: "10px",
+                      backgroundColor: active ? (theme === "dark" ? "rgba(168,85,247,0.15)" : "#f0ebff") : "transparent",
+                      color: active ? "#7c3aed" : (theme === "dark" ? "#71767b" : "#888"),
+                      textDecoration: "none",
+                    }}
+                  >
+                    <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
+                  </Link>
+                );
+              })}
+
+              {/* Dark mode toggle */}
+              <button
+                onClick={toggleTheme}
+                title={theme === "dark" ? "Light mode" : "Dark mode"}
+                className="transition-all duration-200"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 36,
+                  height: 36,
+                  borderRadius: "10px",
+                  backgroundColor: "transparent",
+                  color: theme === "dark" ? "#e7e9ea" : "#888",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+
               {/* Find Companion CTA */}
               <button
                 onClick={() => router.push("/explore")}
@@ -197,7 +208,7 @@ export function Navbar() {
                     cursor: "pointer",
                     padding: "6px",
                     position: "relative",
-                    color: "#555",
+                    color: theme === "dark" ? "#71767b" : "#555",
                   }}
                 >
                   <Bell size={18} />
@@ -234,16 +245,16 @@ export function Navbar() {
                       right: 0,
                       width: 340,
                       maxHeight: 420,
-                      backgroundColor: "#fff",
-                      border: "1px solid rgba(0,0,0,0.06)",
+                      backgroundColor: theme === "dark" ? "#16181c" : "#fff",
+                      border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}`,
                       borderRadius: "16px",
-                      boxShadow: "0 12px 40px rgba(0,0,0,0.12)",
+                      boxShadow: theme === "dark" ? "0 12px 40px rgba(0,0,0,0.5)" : "0 12px 40px rgba(0,0,0,0.12)",
                       overflow: "hidden",
                       zIndex: 100,
                     }}
                   >
-                    <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid #f0f0f0" }}>
-                      <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "#1a1a2e" }}>Notifications</p>
+                    <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: theme === "dark" ? "1px solid rgba(255,255,255,0.08)" : "1px solid #f0f0f0" }}>
+                      <p style={{ fontSize: "0.875rem", fontWeight: 600, color: theme === "dark" ? "#e7e9ea" : "#1a1a2e" }}>Notifications</p>
                       {unreadCount > 0 && (
                         <button
                           onClick={markAllAsRead}
@@ -367,20 +378,20 @@ export function Navbar() {
                       top: "calc(100% + 8px)",
                       right: 0,
                       width: 220,
-                      backgroundColor: "#fff",
-                      border: "1px solid rgba(0,0,0,0.06)",
+                      backgroundColor: theme === "dark" ? "#16181c" : "#fff",
+                      border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}`,
                       borderRadius: "16px",
-                      boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+                      boxShadow: theme === "dark" ? "0 8px 32px rgba(0,0,0,0.5)" : "0 8px 32px rgba(0,0,0,0.1)",
                       overflow: "hidden",
                       zIndex: 100,
                     }}
                   >
                     {/* User info */}
-                    <div style={{ padding: "1rem 1rem 0.75rem", borderBottom: "1px solid #F0F0F0" }}>
-                      <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "#1a1a2e", marginBottom: "0.15rem" }}>
+                    <div style={{ padding: "1rem 1rem 0.75rem", borderBottom: theme === "dark" ? "1px solid rgba(255,255,255,0.08)" : "1px solid #F0F0F0" }}>
+                      <p style={{ fontSize: "0.875rem", fontWeight: 500, color: theme === "dark" ? "#e7e9ea" : "#1a1a2e", marginBottom: "0.15rem" }}>
                         {displayName}
                       </p>
-                      <p style={{ fontSize: "0.75rem", color: "#aaa" }}>
+                      <p style={{ fontSize: "0.75rem", color: theme === "dark" ? "#71767b" : "#aaa" }}>
                         {user?.email}
                       </p>
                     </div>
@@ -390,11 +401,11 @@ export function Navbar() {
                       <Link
                         href="/me"
                         onClick={() => setDropdownOpen(false)}
-                        className="flex items-center gap-2.5 transition-colors hover:bg-purple-50"
+                        className={`flex items-center gap-2.5 transition-colors ${theme === "dark" ? "hover:bg-white/5" : "hover:bg-purple-50"}`}
                         style={{
                           padding: "0.625rem 1rem",
                           fontSize: "0.8125rem",
-                          color: "#333",
+                          color: theme === "dark" ? "#e7e9ea" : "#333",
                           textDecoration: "none",
                         }}
                       >

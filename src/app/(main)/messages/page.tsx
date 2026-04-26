@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useBlocks } from "@/hooks/useBlocks";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { OnlineIndicator, isUserOnline } from "@/components/ui/OnlineIndicator";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 interface ConversationRow {
   id: string;
@@ -56,6 +57,8 @@ function MessagesContent() {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const supabase = createClient();
+  const { theme } = useTheme();
+  const dk = theme === "dark";
 
   // Redirect if not logged in
   useEffect(() => {
@@ -363,7 +366,7 @@ function MessagesContent() {
 
   return (
     <PageTransition>
-    <div style={{ backgroundColor: "#faf9fd", minHeight: "100vh", paddingTop: "4rem", display: "flex", flexDirection: "column" }}>
+    <div style={{ backgroundColor: dk ? "#000" : "#faf9fd", minHeight: "100vh", paddingTop: "4rem", display: "flex", flexDirection: "column" }}>
       {/* Main chat layout */}
       <div className="max-w-7xl mx-auto w-full px-4 lg:px-8 py-6 flex-1" style={{ display: "flex", flexDirection: "column" }}>
         <div
@@ -372,8 +375,8 @@ function MessagesContent() {
             flex: 1,
             borderRadius: "24px",
             overflow: "hidden",
-            backgroundColor: "#fff",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+            backgroundColor: dk ? "#16181c" : "#fff",
+            boxShadow: dk ? "0 4px 24px rgba(0,0,0,0.3)" : "0 4px 24px rgba(0,0,0,0.06)",
             height: "calc(100vh - 8rem)",
           }}
         >
@@ -383,23 +386,23 @@ function MessagesContent() {
             style={{
               width: "100%",
               maxWidth: 340,
-              borderRight: "1px solid rgba(0,0,0,0.06)",
+              borderRight: `1px solid ${dk ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
               flexShrink: 0,
               overflow: "hidden",
             }}
           >
             {/* Sidebar header */}
             <div style={{ padding: "1.5rem 1.25rem 1rem" }}>
-              <h2 style={{ fontSize: "1.375rem", fontWeight: 700, color: "#1a1a2e", marginBottom: "1rem" }}>
+              <h2 style={{ fontSize: "1.375rem", fontWeight: 700, color: dk ? "#e7e9ea" : "#1a1a2e", marginBottom: "1rem" }}>
                 Messages
               </h2>
               <div
                 className="flex items-center gap-2"
                 style={{
-                  border: "1px solid rgba(0,0,0,0.06)",
+                  border: `1px solid ${dk ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
                   borderRadius: "12px",
                   padding: "0.5rem 0.875rem",
-                  backgroundColor: "#f7f7f9",
+                  backgroundColor: dk ? "#1d1f23" : "#f7f7f9",
                 }}
               >
                 <Search size={14} color="#a1a1aa" />
@@ -410,7 +413,7 @@ function MessagesContent() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   style={{
                     flex: 1, border: "none", outline: "none",
-                    fontSize: "0.8125rem", color: "#1a1a2e", backgroundColor: "transparent",
+                    fontSize: "0.8125rem", color: dk ? "#e7e9ea" : "#1a1a2e", backgroundColor: "transparent",
                   }}
                 />
               </div>
@@ -438,13 +441,13 @@ function MessagesContent() {
                       style={{
                         display: "flex", alignItems: "center", gap: "0.75rem",
                         padding: "0.875rem 1.25rem",
-                        backgroundColor: isActive ? "#f5f3ff" : "transparent",
-                        borderBottom: "1px solid rgba(0,0,0,0.03)",
+                        backgroundColor: isActive ? (dk ? "rgba(168,85,247,0.1)" : "#f5f3ff") : "transparent",
+                        borderBottom: `1px solid ${dk ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)"}`,
                         borderLeft: isActive ? "3px solid #7c3aed" : "3px solid transparent",
                         cursor: "pointer", textAlign: "left", width: "100%",
                         transition: "all 0.15s ease",
                         border: "none",
-                        borderBlockEnd: "1px solid rgba(0,0,0,0.03)",
+                        borderBlockEnd: `1px solid ${dk ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)"}`,
                       }}
                     >
                       {/* Avatar with online dot */}
@@ -473,7 +476,7 @@ function MessagesContent() {
 
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div className="flex items-center justify-between mb-0.5">
-                          <p style={{ fontSize: "0.875rem", fontWeight: isActive ? 600 : 500, color: isActive ? "#7c3aed" : "#1a1a2e" }}>
+                          <p style={{ fontSize: "0.875rem", fontWeight: isActive ? 600 : 500, color: isActive ? "#7c3aed" : (dk ? "#e7e9ea" : "#1a1a2e") }}>
                             {convo.partner.full_name || "Unknown"}
                           </p>
                           <span style={{ fontSize: "0.6875rem", color: "#bbb", flexShrink: 0 }}>
@@ -508,7 +511,7 @@ function MessagesContent() {
             ) : (
               <>
                 {/* Chat header */}
-                <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid rgba(0,0,0,0.04)", flexShrink: 0 }}>
+                <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${dk ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"}`, flexShrink: 0 }}>
                   <div className="flex items-center gap-3">
                     <button className="md:hidden p-1" onClick={() => setMobileView("list")}
                       style={{ color: "#a1a1aa", background: "none", border: "none", cursor: "pointer" }}>
@@ -528,7 +531,7 @@ function MessagesContent() {
                       </div>
                     )}
                     <div>
-                      <p style={{ fontSize: "0.9375rem", fontWeight: 600, color: "#1a1a2e" }}>
+                      <p style={{ fontSize: "0.9375rem", fontWeight: 600, color: dk ? "#e7e9ea" : "#1a1a2e" }}>
                         {active.partner.full_name || "Unknown"}
                       </p>
                       <div className="flex items-center gap-1.5">
@@ -556,7 +559,7 @@ function MessagesContent() {
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 flex flex-col gap-3 overflow-y-auto px-6 py-6" style={{ scrollBehavior: "smooth", backgroundColor: "#faf9fd" }}>
+                <div className="flex-1 flex flex-col gap-3 overflow-y-auto px-6 py-6" style={{ scrollBehavior: "smooth", backgroundColor: dk ? "#000" : "#faf9fd" }}>
                   {messages.length === 0 ? (
                     <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <p style={{ fontSize: "0.875rem", color: "#c4b5fd", fontStyle: "italic" }}>
@@ -569,7 +572,7 @@ function MessagesContent() {
                       <div className="flex items-center justify-center my-2">
                         <span style={{
                           fontSize: "0.6875rem", fontWeight: 600, color: "#a1a1aa",
-                          backgroundColor: "#fff", padding: "0.25rem 0.75rem",
+                          backgroundColor: dk ? "#16181c" : "#fff", padding: "0.25rem 0.75rem",
                           borderRadius: "12px", textTransform: "uppercase", letterSpacing: "0.06em",
                         }}>
                           Today
@@ -600,9 +603,9 @@ function MessagesContent() {
                                 padding: "0.75rem 1rem",
                                 borderRadius: isMine ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
                                 background: isMine
-                                  ? "#f0edf6"
+                                  ? (dk ? "#1d1f23" : "#f0edf6")
                                   : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
-                                color: isMine ? "#1a1a2e" : "#fff",
+                                color: isMine ? (dk ? "#e7e9ea" : "#1a1a2e") : "#fff",
                                 fontSize: "0.875rem",
                                 lineHeight: 1.55,
                               }}>
@@ -662,7 +665,7 @@ function MessagesContent() {
                 </div>
 
                 {/* Input */}
-                <div className="flex items-center gap-3 px-6 py-4" style={{ borderTop: "1px solid rgba(0,0,0,0.04)", flexShrink: 0, backgroundColor: "#fff" }}>
+                <div className="flex items-center gap-3 px-6 py-4" style={{ borderTop: `1px solid ${dk ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"}`, flexShrink: 0, backgroundColor: dk ? "#16181c" : "#fff" }}>
                   <button style={{ background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: "4px", flexShrink: 0 }}>
                     <Smile size={20} />
                   </button>
@@ -673,9 +676,9 @@ function MessagesContent() {
                     onChange={handleInputChange}
                     onKeyDown={handleKey}
                     style={{
-                      flex: 1, border: "1px solid rgba(0,0,0,0.06)", borderRadius: "24px",
+                      flex: 1, border: `1px solid ${dk ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`, borderRadius: "24px",
                       padding: "0.7rem 1.25rem", fontSize: "0.875rem",
-                      color: "#1a1a2e", outline: "none", backgroundColor: "#f7f7f9",
+                      color: dk ? "#e7e9ea" : "#1a1a2e", outline: "none", backgroundColor: dk ? "#1d1f23" : "#f7f7f9",
                     }}
                   />
                   <button
@@ -684,8 +687,8 @@ function MessagesContent() {
                     className="transition-all duration-200"
                     style={{
                       width: 40, height: 40, borderRadius: "50%",
-                      background: input.trim() ? "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" : "#f0f0f0",
-                      color: input.trim() ? "#fff" : "#ccc",
+                      background: input.trim() ? "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" : (dk ? "#1d1f23" : "#f0f0f0"),
+                      color: input.trim() ? "#fff" : (dk ? "#555" : "#ccc"),
                       border: "none", cursor: input.trim() ? "pointer" : "default",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       flexShrink: 0,

@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { useConnections } from "@/hooks/useConnections";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 interface ActivityItem {
   id: string;
@@ -44,6 +45,8 @@ export default function ActivityPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const supabase = createClient();
   const { acceptConnect, declineConnect } = useConnections();
+  const { theme } = useTheme();
+  const dk = theme === "dark";
 
   useEffect(() => {
     if (!authLoading && !user) router.push("/");
@@ -175,13 +178,13 @@ export default function ActivityPage() {
 
   return (
     <PageTransition>
-      <div style={{ backgroundColor: "#fff", minHeight: "100vh", paddingTop: "4rem" }}>
-        <section style={{ padding: "6rem 0 4rem", borderBottom: "1px solid #EFEFEF" }}>
+      <div style={{ backgroundColor: dk ? "#000" : "#fff", minHeight: "100vh", paddingTop: "4rem" }}>
+        <section style={{ padding: "6rem 0 4rem", borderBottom: `1px solid ${dk ? "rgba(255,255,255,0.06)" : "#EFEFEF"}` }}>
           <div className="max-w-3xl mx-auto px-6 lg:px-8">
-            <p style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.1em", color: "#bbb", textTransform: "uppercase", marginBottom: "1rem" }}>
+            <p style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.1em", color: dk ? "#71767b" : "#bbb", textTransform: "uppercase", marginBottom: "1rem" }}>
               Activity
             </p>
-            <h1 className="font-display" style={{ fontSize: "clamp(2.25rem, 4vw, 3rem)", fontWeight: 500, color: "#0a0a0a", lineHeight: 1.12, letterSpacing: "-0.02em" }}>
+            <h1 className="font-display" style={{ fontSize: "clamp(2.25rem, 4vw, 3rem)", fontWeight: 500, color: dk ? "#e7e9ea" : "#0a0a0a", lineHeight: 1.12, letterSpacing: "-0.02em" }}>
               What&apos;s happening.
             </h1>
           </div>
@@ -193,7 +196,7 @@ export default function ActivityPage() {
             {/* ─── Connection Requests ─── */}
             {requests.length > 0 && (
               <div style={{ marginBottom: "2.5rem" }}>
-                <p style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.08em", color: "#7c3aed", textTransform: "uppercase", marginBottom: "1rem", paddingBottom: "0.5rem", borderBottom: "2px solid #ede9fe" }}>
+                <p style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.08em", color: "#7c3aed", textTransform: "uppercase", marginBottom: "1rem", paddingBottom: "0.5rem", borderBottom: dk ? "2px solid rgba(168,85,247,0.2)" : "2px solid #ede9fe" }}>
                   Connection Requests · {requests.length}
                 </p>
                 <div className="flex flex-col gap-3">
@@ -201,7 +204,7 @@ export default function ActivityPage() {
                     const name = req.sender?.full_name || "Someone";
                     const busy = actionLoading === req.id;
                     return (
-                      <div key={req.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "1rem 1.25rem", borderRadius: 16, border: "1.5px solid #ede9fe", backgroundColor: "#faf9ff" }}>
+                      <div key={req.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "1rem 1.25rem", borderRadius: 16, border: dk ? "1.5px solid rgba(168,85,247,0.2)" : "1.5px solid #ede9fe", backgroundColor: dk ? "#16181c" : "#faf9ff" }}>
                         {/* Avatar */}
                         <button onClick={() => router.push(`/profile/${req.sender_id}`)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}>
                           {req.sender?.avatar_url ? (
@@ -215,7 +218,7 @@ export default function ActivityPage() {
 
                         {/* Info */}
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: "0.9375rem", fontWeight: 600, color: "#1a1a2e", marginBottom: "0.125rem" }}>{name}</p>
+                          <p style={{ fontSize: "0.9375rem", fontWeight: 600, color: dk ? "#e7e9ea" : "#1a1a2e", marginBottom: "0.125rem" }}>{name}</p>
                           {req.sender?.bio && (
                             <p style={{ fontSize: "0.75rem", color: "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {req.sender.bio}
@@ -237,7 +240,7 @@ export default function ActivityPage() {
                           <button
                             disabled={busy}
                             onClick={() => handleDecline(req)}
-                            style={{ display: "flex", alignItems: "center", gap: 5, padding: "0.5rem 1rem", borderRadius: 20, fontSize: "0.8125rem", fontWeight: 600, border: "1.5px solid #e5e5f0", cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.6 : 1, background: "#fff", color: "#888", transition: "all 0.15s" }}
+                            style={{ display: "flex", alignItems: "center", gap: 5, padding: "0.5rem 1rem", borderRadius: 20, fontSize: "0.8125rem", fontWeight: 600, border: dk ? "1.5px solid rgba(255,255,255,0.1)" : "1.5px solid #e5e5f0", cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.6 : 1, background: dk ? "#16181c" : "#fff", color: dk ? "#71767b" : "#888", transition: "all 0.15s" }}
                             onMouseEnter={e => { e.currentTarget.style.borderColor = "#fca5a5"; e.currentTarget.style.color = "#ef4444"; }}
                             onMouseLeave={e => { e.currentTarget.style.borderColor = "#e5e5f0"; e.currentTarget.style.color = "#888"; }}
                           >
@@ -269,7 +272,7 @@ export default function ActivityPage() {
             ) : (
               groups.map(group => (
                 <div key={group.label} style={{ marginBottom: "2rem" }}>
-                  <p style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.08em", color: "#bbb", textTransform: "uppercase", marginBottom: "1rem", paddingBottom: "0.5rem", borderBottom: "1px solid #F5F5F5" }}>
+                  <p style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.08em", color: dk ? "#71767b" : "#bbb", textTransform: "uppercase", marginBottom: "1rem", paddingBottom: "0.5rem", borderBottom: dk ? "1px solid rgba(255,255,255,0.06)" : "1px solid #F5F5F5" }}>
                     {group.label}
                   </p>
                   <div className="flex flex-col gap-1">
@@ -280,7 +283,7 @@ export default function ActivityPage() {
                         <button
                           key={item.id}
                           onClick={() => handleActivityClick(item)}
-                          className="flex items-center gap-4 w-full text-left transition-colors hover:bg-gray-50"
+                          className="flex items-center gap-4 w-full text-left transition-colors"
                           style={{ padding: "1rem 1.125rem", borderRadius: "10px", background: "none", border: "none", cursor: "pointer" }}
                         >
                           <div style={{ width: 36, height: 36, borderRadius: "50%", backgroundColor: config.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -289,14 +292,14 @@ export default function ActivityPage() {
                           {item.actor?.avatar_url ? (
                             <img src={item.actor.avatar_url} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                           ) : (
-                            <div style={{ width: 40, height: 40, borderRadius: "50%", backgroundColor: "#F0F0F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 600, color: "#555", flexShrink: 0 }}>
+                            <div style={{ width: 40, height: 40, borderRadius: "50%", backgroundColor: dk ? "#1d1f23" : "#F0F0F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 600, color: dk ? "#71767b" : "#555", flexShrink: 0 }}>
                               {getInitials(item.actor?.full_name || null)}
                             </div>
                           )}
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: "0.875rem", color: "#0a0a0a", lineHeight: 1.4 }}>
+                            <p style={{ fontSize: "0.875rem", color: dk ? "#e7e9ea" : "#0a0a0a", lineHeight: 1.4 }}>
                               <span style={{ fontWeight: 500 }}>{item.actor?.full_name || "Someone"}</span>{" "}
-                              <span style={{ color: "#666" }}>{config.label}</span>
+                              <span style={{ color: dk ? "#71767b" : "#666" }}>{config.label}</span>
                             </p>
                           </div>
                           <span style={{ fontSize: "0.6875rem", color: "#ccc", flexShrink: 0 }}>{formatTime(item.created_at)}</span>

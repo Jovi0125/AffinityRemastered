@@ -7,6 +7,7 @@ import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { HeroMiniAvatars } from "@/components/ui/HeroCards";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 function HeroSignInForm() {
   const router = useRouter();
@@ -32,13 +33,16 @@ function HeroSignInForm() {
     }
   };
 
+  const { theme } = useTheme();
+  const d = theme === "dark";
+
   const inputStyle: React.CSSProperties = {
     width: "100%",
     padding: "0.7rem 1rem",
     fontSize: "0.8125rem",
-    color: "#1a1a2e",
-    backgroundColor: "#f7f7f9",
-    border: "1px solid rgba(0,0,0,0.06)",
+    color: d ? "#e7e9ea" : "#1a1a2e",
+    backgroundColor: d ? "#1d1f23" : "#f7f7f9",
+    border: `1px solid ${d ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"}`,
     borderRadius: "12px",
     outline: "none",
     transition: "border-color 0.2s ease",
@@ -47,15 +51,15 @@ function HeroSignInForm() {
   return (
     <div
       style={{
-        backgroundColor: "#fff",
+        backgroundColor: d ? "#16181c" : "#fff",
         borderRadius: "24px",
         padding: "2.5rem",
-        boxShadow: "0 8px 40px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.02)",
-        border: "1px solid rgba(0,0,0,0.04)",
+        boxShadow: d ? "0 8px 40px rgba(0,0,0,0.4)" : "0 8px 40px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.02)",
+        border: `1px solid ${d ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)"}`,
         width: 480,
       }}
     >
-      <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#1a1a2e", marginBottom: "0.25rem" }}>
+      <p style={{ fontSize: "1.25rem", fontWeight: 700, color: d ? "#e7e9ea" : "#1a1a2e", marginBottom: "0.25rem" }}>
         Sign in
       </p>
       <p style={{ fontSize: "0.8125rem", color: "#a1a1aa", marginBottom: "1.5rem" }}>
@@ -123,6 +127,8 @@ function HeroSignInForm() {
 export function HeroSection() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { theme } = useTheme();
+  const d = theme === "dark";
 
   const isLoggedIn = !authLoading && !!user;
 
@@ -130,7 +136,7 @@ export function HeroSection() {
     <section
       style={{
         minHeight: "100vh",
-        backgroundColor: "#fff",
+        backgroundColor: d ? "#000" : "#fff",
         display: "flex",
         alignItems: "center",
         position: "relative",
@@ -148,7 +154,7 @@ export function HeroSection() {
                 padding: "0.35rem 1rem",
                 border: "1px solid #e9e5f5",
                 borderRadius: "24px",
-                backgroundColor: "#f5f3ff",
+                backgroundColor: d ? "rgba(168,85,247,0.12)" : "#f5f3ff",
               }}
             >
               <span
@@ -169,7 +175,7 @@ export function HeroSection() {
               style={{
                 fontSize: "clamp(2.75rem, 5vw, 4.25rem)",
                 fontWeight: 700,
-                color: "#1a1a2e",
+                color: d ? "#e7e9ea" : "#1a1a2e",
                 lineHeight: 1.1,
                 letterSpacing: "-0.03em",
                 marginBottom: "1.5rem",
@@ -177,7 +183,7 @@ export function HeroSection() {
             >
               Find Your{" "}
               <span style={{ color: "#7c3aed" }}>
-                Kindred
+                Companion
               </span>
               <br />
               Spirit.
@@ -215,22 +221,6 @@ export function HeroSection() {
                   }}
                 >
                   Get Started <ArrowRight size={16} />
-                </button>
-                <button
-                  onClick={() => router.push("/explore")}
-                  className="transition-all duration-200 hover:bg-gray-50"
-                  style={{
-                    fontSize: "0.875rem",
-                    fontWeight: 500,
-                    padding: "0.875rem 2rem",
-                    backgroundColor: "transparent",
-                    color: "#1a1a2e",
-                    border: "1.5px solid #1a1a2e",
-                    borderRadius: "28px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Explore Communities
                 </button>
               </div>
             )}
