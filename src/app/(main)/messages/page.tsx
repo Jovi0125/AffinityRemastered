@@ -64,6 +64,13 @@ function MessagesContent() {
   const [callerName, setCallerName] = useState("");
   const [callerAvatar, setCallerAvatar] = useState<string | null>(null);
   const [callerId, setCallerId] = useState<string | null>(null);
+
+  // Ref to hold the latest call state for the channel event handlers to access
+  // without needing to add them to the useEffect dependency array.
+  const callStateRef = useRef({ isOpen: isCallModalOpen, isIncoming: isIncomingCall });
+  useEffect(() => {
+    callStateRef.current = { isOpen: isCallModalOpen, isIncoming: isIncomingCall };
+  }, [isCallModalOpen, isIncomingCall]);
   const [activeCallConvoId, setActiveCallConvoId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -330,7 +337,7 @@ function MessagesContent() {
       })
       .on("broadcast", { event: "call_accept" }, async (payload) => {
         // Partner accepted the call
-        if (isCallModalOpen && !isIncomingCall) {
+        if (callStateRef.current.isOpen && !callStateRef.current.isIncoming) {
           // Generate token and join
           const { convoId } = payload.payload;
           try {
@@ -368,7 +375,7 @@ function MessagesContent() {
     return () => {
       supabase.removeChannel(callChannelObj);
     };
-  }, [user, isCallModalOpen, isIncomingCall]);
+  }, [user]); // Removed isCallModalOpen and isIncomingCall from dependencies
 
   const initiateCall = async () => {
     if (!activeId || !user || !active) return;
