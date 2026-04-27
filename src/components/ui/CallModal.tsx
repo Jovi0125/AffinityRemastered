@@ -74,7 +74,7 @@ function CallModalContent({
   const { localCameraTrack, error: camError } = useLocalCameraTrack(shouldRequestMedia && cameraOn);
 
   // Publish tracks if ready (safely filter out nulls)
-  const tracksToPublish = [localMicrophoneTrack, localCameraTrack].filter(Boolean) as (LocalVideoTrack | any)[];
+  const tracksToPublish = [localMicrophoneTrack, localCameraTrack].filter(Boolean) as any[];
   usePublish(tracksToPublish);
 
   const remoteUsers = useRemoteUsers();

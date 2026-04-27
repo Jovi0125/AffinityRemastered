@@ -404,6 +404,7 @@ function MessagesContent() {
   };
 
   const handleAcceptCall = async () => {
+    if (!user) return;
     setIsIncomingCall(false);
     if (!callChannel || !callerId) return;
 
