@@ -56,7 +56,8 @@ function HeroSignInForm() {
         padding: "2.5rem",
         boxShadow: d ? "0 8px 40px rgba(0,0,0,0.4)" : "0 8px 40px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.02)",
         border: `1px solid ${d ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)"}`,
-        width: 480,
+        width: "100%",
+        maxWidth: 480,
       }}
     >
       <p style={{ fontSize: "1.25rem", fontWeight: 700, color: d ? "#e7e9ea" : "#1a1a2e", marginBottom: "0.25rem" }}>
@@ -230,7 +231,7 @@ export function HeroSection() {
 
           {/* Right — sign-in form (logged out) or nothing */}
           {!isLoggedIn && !authLoading && (
-            <div className="hidden lg:flex items-center justify-center" style={{ flexShrink: 0, width: 480 }}>
+            <div className="flex items-center justify-center w-full lg:w-auto mt-8 lg:mt-0" style={{ flexShrink: 0, maxWidth: 480 }}>
               <HeroSignInForm />
             </div>
           )}

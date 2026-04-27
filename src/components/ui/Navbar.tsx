@@ -126,9 +126,9 @@ export function Navbar() {
 
 
         {/* Right side */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="flex items-center gap-3">
           {isLoggedIn ? (
-            <>
+            <div className="hidden md:flex items-center gap-3">
               {/* Nav icon buttons */}
               {navLinks.map((item) => {
                 if (item.label === "Messages" && !isLoggedIn) return null;
@@ -450,11 +450,11 @@ export function Navbar() {
                   </div>
                 )}
               </div>
-            </>
+              </div>
           ) : (
             /* Logged out CTA */
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/signin")}
               className="transition-all duration-200 hover:shadow-lg"
               style={{
                 fontSize: "0.8125rem",
@@ -467,7 +467,7 @@ export function Navbar() {
                 cursor: "pointer",
               }}
             >
-              Find Companion
+              Sign In
             </button>
           )}
         </div>
@@ -537,7 +537,7 @@ export function Navbar() {
             </>
           ) : (
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/signin")}
               style={{
                 fontSize: "0.8125rem",
                 fontWeight: 600,
@@ -550,7 +550,7 @@ export function Navbar() {
                 width: "fit-content",
               }}
             >
-              Find Companion
+              Sign In
             </button>
           )}
         </div>

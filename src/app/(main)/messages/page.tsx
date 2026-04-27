@@ -9,6 +9,7 @@ import { useBlocks } from "@/hooks/useBlocks";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { OnlineIndicator, isUserOnline } from "@/components/ui/OnlineIndicator";
 import { useTheme } from "@/components/providers/ThemeProvider";
+import { CallModal } from "@/components/ui/CallModal";
 
 interface ConversationRow {
   id: string;
@@ -53,6 +54,18 @@ function MessagesContent() {
   const [loadingConvos, setLoadingConvos] = useState(true);
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Call State
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+  const [isIncomingCall, setIsIncomingCall] = useState(false);
+  const [callToken, setCallToken] = useState<string | null>(null);
+  const [callAppId, setCallAppId] = useState<string | null>(null);
+  const [callChannel, setCallChannel] = useState<string | null>(null);
+  const [callerName, setCallerName] = useState("");
+  const [callerAvatar, setCallerAvatar] = useState<string | null>(null);
+  const [callerId, setCallerId] = useState<string | null>(null);
+  const [activeCallConvoId, setActiveCallConvoId] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -297,6 +310,174 @@ function MessagesContent() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, user]);
+
+  // Handle Call Signaling
+  useEffect(() => {
+    if (!user) return;
+
+    const callChannelObj = supabase
+      .channel(`call_signal:${user.id}`)
+      .on("broadcast", { event: "call_invite" }, (payload) => {
+        // Incoming call
+        const { convoId, callerName: cName, callerAvatar: cAvatar, callerId: cId } = payload.payload;
+        setCallChannel(convoId);
+        setCallerName(cName);
+        setCallerAvatar(cAvatar);
+        setCallerId(cId);
+        setActiveCallConvoId(convoId);
+        setIsIncomingCall(true);
+        setIsCallModalOpen(true);
+      })
+      .on("broadcast", { event: "call_accept" }, async (payload) => {
+        // Partner accepted the call
+        if (isCallModalOpen && !isIncomingCall) {
+          // Generate token and join
+          const { convoId } = payload.payload;
+          try {
+            const res = await fetch("/api/agora/token", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ channelName: convoId, uid: user.id }),
+            });
+            const data = await res.json();
+            if (data.token) {
+              setCallToken(data.token);
+              setCallAppId(data.appId);
+            }
+          } catch (err) {
+            console.error("Token error", err);
+          }
+        }
+      })
+      .on("broadcast", { event: "call_decline" }, () => {
+        // Partner declined
+        setIsCallModalOpen(false);
+        setIsIncomingCall(false);
+        setCallToken(null);
+        setCallChannel(null);
+      })
+      .on("broadcast", { event: "call_end" }, () => {
+        // Partner ended the call
+        setIsCallModalOpen(false);
+        setIsIncomingCall(false);
+        setCallToken(null);
+        setCallChannel(null);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(callChannelObj);
+    };
+  }, [user, isCallModalOpen, isIncomingCall]);
+
+  const initiateCall = async () => {
+    if (!activeId || !user || !active) return;
+    
+    // Set local state to out-going
+    setIsIncomingCall(false);
+    setCallChannel(activeId);
+    setCallerName(active.partner.full_name || "Unknown");
+    setCallerAvatar(active.partner.avatar_url);
+    setActiveCallConvoId(activeId);
+    setIsCallModalOpen(true);
+
+    // Get current user profile for the invite
+    const { data: myProfile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).single();
+
+    // Signal partner by temporarily joining their channel to broadcast
+    const partnerChannel = supabase.channel(`call_signal:${active.partner.id}`);
+    partnerChannel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        partnerChannel.send({
+          type: "broadcast",
+          event: "call_invite",
+          payload: {
+            convoId: activeId,
+            callerId: user.id,
+            callerName: myProfile?.full_name || "Someone",
+            callerAvatar: myProfile?.avatar_url || null,
+          },
+        });
+        setTimeout(() => supabase.removeChannel(partnerChannel), 2000);
+      }
+    });
+  };
+
+  const handleAcceptCall = async () => {
+    setIsIncomingCall(false);
+    if (!callChannel || !callerId) return;
+
+    // Signal acceptance back to caller
+    const callerChannel = supabase.channel(`call_signal:${callerId}`);
+    callerChannel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        callerChannel.send({
+          type: "broadcast",
+          event: "call_accept",
+          payload: { convoId: callChannel },
+        });
+        setTimeout(() => supabase.removeChannel(callerChannel), 2000);
+      }
+    });
+
+    // Generate my token
+    try {
+      const res = await fetch("/api/agora/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelName: callChannel, uid: user.id }),
+      });
+      const data = await res.json();
+      if (data.token) {
+        setCallToken(data.token);
+        setCallAppId(data.appId);
+      }
+    } catch (err) {
+      console.error("Token error", err);
+    }
+  };
+
+  const handleDeclineCall = () => {
+    if (callerId) {
+      const callerChannel = supabase.channel(`call_signal:${callerId}`);
+      callerChannel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          callerChannel.send({
+            type: "broadcast",
+            event: "call_decline",
+            payload: { convoId: callChannel },
+          });
+          setTimeout(() => supabase.removeChannel(callerChannel), 2000);
+        }
+      });
+    }
+    setIsCallModalOpen(false);
+    setIsIncomingCall(false);
+    setCallChannel(null);
+    setCallToken(null);
+    setCallAppId(null);
+  };
+
+  const handleEndCall = () => {
+    const partnerId = isIncomingCall ? callerId : active?.partner.id;
+    if (partnerId) {
+      const partnerChannel = supabase.channel(`call_signal:${partnerId}`);
+      partnerChannel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          partnerChannel.send({
+            type: "broadcast",
+            event: "call_end",
+            payload: { convoId: callChannel },
+          });
+          setTimeout(() => supabase.removeChannel(partnerChannel), 2000);
+        }
+      });
+    }
+    setIsCallModalOpen(false);
+    setIsIncomingCall(false);
+    setCallChannel(null);
+    setCallToken(null);
+  };
 
   // Mark messages as read when viewing
   useEffect(() => {
@@ -546,10 +727,10 @@ function MessagesContent() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button style={{ background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: "4px" }}>
+                    <button onClick={initiateCall} style={{ background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: "4px" }}>
                       <Video size={18} />
                     </button>
-                    <button style={{ background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: "4px" }}>
+                    <button onClick={initiateCall} style={{ background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: "4px" }}>
                       <Phone size={18} />
                     </button>
                     <button style={{ background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: "4px" }}>
@@ -702,6 +883,19 @@ function MessagesContent() {
           </div>
         </div>
       </div>
+      <CallModal
+        isOpen={isCallModalOpen}
+        isIncoming={isIncomingCall}
+        partnerName={callerName || (active?.partner.full_name ?? "Unknown")}
+        partnerAvatar={callerAvatar || (active?.partner.avatar_url ?? null)}
+        channelName={callChannel}
+        token={callToken}
+        appId={callAppId}
+        uid={user.id}
+        onAccept={handleAcceptCall}
+        onDecline={handleDeclineCall}
+        onEnd={handleEndCall}
+      />
     </div>
     </PageTransition>
   );
