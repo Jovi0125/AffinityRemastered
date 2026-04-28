@@ -11,7 +11,7 @@ import AgoraRTC, {
   RemoteUser,
   LocalVideoTrack
 } from "agora-rtc-react";
-import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff } from "lucide-react";
+import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Volume2, VolumeX } from "lucide-react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 
 const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
@@ -65,6 +65,24 @@ function CallModalContent({
 
   const [micOn, setMicOn] = useState(true);
   const [cameraOn, setCameraOn] = useState(true);
+  const [deafened, setDeafened] = useState(false);
+
+  const [callDuration, setCallDuration] = useState(0);
+
+  // Timer logic
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isReadyToJoin && remoteUsers.length > 0) {
+      timer = setInterval(() => setCallDuration((prev) => prev + 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isReadyToJoin, remoteUsers.length]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
 
   // Only request media if we are actively calling or have accepted the call.
   // This prevents mobile Safari from blocking the camera request because it lacked a user gesture.
@@ -153,9 +171,10 @@ function CallModalContent({
           <div style={{ width: "100%", height: "100%", display: "flex", flexWrap: "wrap" }}>
             {remoteUsers.map((user) => (
               <div key={user.uid} style={{ flex: 1, minWidth: "50%", height: "100%", position: "relative" }}>
-                <RemoteUser user={user} playVideo={true} playAudio={true} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                <div style={{ position: "absolute", bottom: 20, left: 20, backgroundColor: "rgba(0,0,0,0.5)", padding: "4px 12px", borderRadius: "12px", color: "#fff", fontSize: "0.875rem" }}>
-                  {partnerName}
+                <RemoteUser user={user} playVideo={true} playAudio={!deafened} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <div style={{ position: "absolute", bottom: 20, left: 20, backgroundColor: "rgba(0,0,0,0.5)", padding: "4px 12px", borderRadius: "12px", color: "#fff", fontSize: "0.875rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                  <span>{partnerName}</span>
+                  <span style={{ opacity: 0.8, fontSize: "0.75rem" }}>• {formatTime(callDuration)}</span>
                 </div>
               </div>
             ))}
@@ -206,15 +225,25 @@ function CallModalContent({
           backgroundColor: micOn ? "rgba(255,255,255,0.1)" : "#ef4444",
           border: "none", cursor: "pointer", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
           transition: "background 0.2s"
-        }}>
+        }} title={micOn ? "Mute Microphone" : "Unmute Microphone"}>
           {micOn ? <Mic size={24} /> : <MicOff size={24} />}
         </button>
+
+        <button onClick={() => setDeafened(!deafened)} style={{
+          width: 56, height: 56, borderRadius: "50%",
+          backgroundColor: !deafened ? "rgba(255,255,255,0.1)" : "#ef4444",
+          border: "none", cursor: "pointer", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "background 0.2s"
+        }} title={deafened ? "Undeafen" : "Deafen"}>
+          {!deafened ? <Volume2 size={24} /> : <VolumeX size={24} />}
+        </button>
+
         <button onClick={() => setCameraOn(!cameraOn)} style={{
           width: 56, height: 56, borderRadius: "50%",
           backgroundColor: cameraOn ? "rgba(255,255,255,0.1)" : "#ef4444",
           border: "none", cursor: "pointer", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
           transition: "background 0.2s"
-        }}>
+        }} title={cameraOn ? "Turn off Camera" : "Turn on Camera"}>
           {cameraOn ? <Video size={24} /> : <VideoOff size={24} />}
         </button>
         <button onClick={onEnd} style={{
