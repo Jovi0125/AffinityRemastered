@@ -70,6 +70,7 @@ function CallModalContent({
   const [deafened, setDeafened] = useState(false);
 
   const [callDuration, setCallDuration] = useState(0);
+  const remoteUsers = useRemoteUsers();
 
   // Timer logic
   useEffect(() => {
@@ -96,8 +97,6 @@ function CallModalContent({
   // Publish tracks if ready (safely filter out nulls)
   const tracksToPublish = [localMicrophoneTrack, localCameraTrack].filter(Boolean) as any[];
   usePublish(tracksToPublish);
-
-  const remoteUsers = useRemoteUsers();
 
   const getInitials = (name: string) =>
     (name || "?")
