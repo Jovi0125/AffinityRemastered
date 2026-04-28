@@ -25,6 +25,7 @@ interface CallModalProps {
   token: string | null;
   appId: string | null;
   uid: string | null;
+  initialVideo: boolean;
   onAccept: () => void;
   onDecline: () => void;
   onEnd: () => void;
@@ -48,6 +49,7 @@ function CallModalContent({
   token,
   appId,
   uid,
+  initialVideo,
   onAccept,
   onDecline,
   onEnd,
@@ -64,7 +66,7 @@ function CallModalContent({
   );
 
   const [micOn, setMicOn] = useState(true);
-  const [cameraOn, setCameraOn] = useState(true);
+  const [cameraOn, setCameraOn] = useState(initialVideo);
   const [deafened, setDeafened] = useState(false);
 
   const [callDuration, setCallDuration] = useState(0);
@@ -135,7 +137,7 @@ function CallModalContent({
             {partnerName}
           </h2>
           <p style={{ fontSize: "1rem", color: "#a1a1aa", marginBottom: "2.5rem", animation: "pulse 2s infinite" }}>
-            Incoming Video Call...
+            {initialVideo ? "Incoming Video Call..." : "Incoming Audio Call..."}
           </p>
           <div style={{ display: "flex", gap: "1.5rem", justifyContent: "center" }}>
             <button onClick={onDecline} style={{
