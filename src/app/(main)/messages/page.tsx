@@ -65,6 +65,7 @@ function MessagesContent() {
   const [callerAvatar, setCallerAvatar] = useState<string | null>(null);
   const [callerId, setCallerId] = useState<string | null>(null);
   const [isVideoCall, setIsVideoCall] = useState(true);
+  const [callKey, setCallKey] = useState(0);
 
   // Ref to hold the latest call state for the channel event handlers to access
   // without needing to add them to the useEffect dependency array.
@@ -334,6 +335,7 @@ function MessagesContent() {
         setCallerId(cId);
         setActiveCallConvoId(convoId);
         setIsVideoCall(isVideo ?? true);
+        setCallKey((k) => k + 1);
         setIsIncomingCall(true);
         setIsCallModalOpen(true);
       })
@@ -385,6 +387,7 @@ function MessagesContent() {
     // Set local state to out-going
     setIsIncomingCall(false);
     setIsVideoCall(video);
+    setCallKey((k) => k + 1);
     setCallChannel(activeId);
     setCallerName(active.partner.full_name || "Unknown");
     setCallerAvatar(active.partner.avatar_url);
@@ -896,6 +899,7 @@ function MessagesContent() {
         </div>
       </div>
       <CallModal
+        key={callKey}
         isOpen={isCallModalOpen}
         isIncoming={isIncomingCall}
         partnerName={callerName || (active?.partner.full_name ?? "Unknown")}
