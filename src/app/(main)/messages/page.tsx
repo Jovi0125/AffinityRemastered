@@ -64,6 +64,7 @@ function MessagesContent() {
   const [callerName, setCallerName] = useState("");
   const [callerAvatar, setCallerAvatar] = useState<string | null>(null);
   const [callerId, setCallerId] = useState<string | null>(null);
+  const [isVideoCall, setIsVideoCall] = useState(true);
 
   // Ref to hold the latest call state for the channel event handlers to access
   // without needing to add them to the useEffect dependency array.
@@ -326,12 +327,13 @@ function MessagesContent() {
       .channel(`call_signal:${user.id}`)
       .on("broadcast", { event: "call_invite" }, (payload) => {
         // Incoming call
-        const { convoId, callerName: cName, callerAvatar: cAvatar, callerId: cId } = payload.payload;
+        const { convoId, callerName: cName, callerAvatar: cAvatar, callerId: cId, isVideoCall: isVideo } = payload.payload;
         setCallChannel(convoId);
         setCallerName(cName);
         setCallerAvatar(cAvatar);
         setCallerId(cId);
         setActiveCallConvoId(convoId);
+        setIsVideoCall(isVideo ?? true);
         setIsIncomingCall(true);
         setIsCallModalOpen(true);
       })
@@ -377,11 +379,12 @@ function MessagesContent() {
     };
   }, [user]); // Removed isCallModalOpen and isIncomingCall from dependencies
 
-  const initiateCall = async () => {
+  const initiateCall = async (video: boolean = true) => {
     if (!activeId || !user || !active) return;
     
     // Set local state to out-going
     setIsIncomingCall(false);
+    setIsVideoCall(video);
     setCallChannel(activeId);
     setCallerName(active.partner.full_name || "Unknown");
     setCallerAvatar(active.partner.avatar_url);
@@ -403,6 +406,7 @@ function MessagesContent() {
             callerId: user.id,
             callerName: myProfile?.full_name || "Someone",
             callerAvatar: myProfile?.avatar_url || null,
+            isVideoCall: video,
           },
         });
         setTimeout(() => supabase.removeChannel(partnerChannel), 2000);
@@ -735,10 +739,10 @@ function MessagesContent() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button onClick={initiateCall} style={{ background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: "4px" }}>
+                    <button onClick={() => initiateCall(true)} style={{ background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: "4px" }}>
                       <Video size={18} />
                     </button>
-                    <button onClick={initiateCall} style={{ background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: "4px" }}>
+                    <button onClick={() => initiateCall(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: "4px" }}>
                       <Phone size={18} />
                     </button>
                     <button style={{ background: "none", border: "none", cursor: "pointer", color: "#a1a1aa", padding: "4px" }}>
@@ -900,6 +904,7 @@ function MessagesContent() {
         token={callToken}
         appId={callAppId}
         uid={user.id}
+        initialVideo={isVideoCall}
         onAccept={handleAcceptCall}
         onDecline={handleDeclineCall}
         onEnd={handleEndCall}
